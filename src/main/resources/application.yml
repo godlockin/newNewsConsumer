@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: newsConsumer
+  profiles:
+    active: dev
+
+logging:
+  config: classpath:logback-spring.xml
+  path: ./logs/newsConsumer
+  pattern:
+    dateformat: yyyyMMdd HH:mm:ss:SSS
+    level: info
+
+http:
+  defaultMaxPerRoute: 20
+  maxTotal: 100
+  staleConnectionCheckEnabled: true
+  socketTimeout: 10000
+  connectTimeout: 1000
+  connectionRequestTimeout: 500
