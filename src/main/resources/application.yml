@@ -3,13 +3,13 @@ server:
 
 spring:
   application:
-    name: newsConsumer
+    name: newNewsConsumer
   profiles:
     active: dev
 
 logging:
   config: classpath:logback-spring.xml
-  path: ./logs/newsConsumer
+  path: ./logs/newNewsConsumer
   pattern:
     dateformat: yyyyMMdd HH:mm:ss:SSS
     level: info
