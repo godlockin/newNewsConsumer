@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -126,6 +127,8 @@ public class Consumer {
                     log.error("No content for:[{}]", value);
                     return KeyValue.pair(key, result);
                 }
+
+                content = new String(content.getBytes(StandardCharsets.UTF_8));
 
                 Map<String, String> langParam = new HashMap<>();
                 langParam.put("text", content);
