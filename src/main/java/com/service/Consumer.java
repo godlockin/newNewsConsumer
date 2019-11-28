@@ -130,9 +130,9 @@ public class Consumer {
 
                 content = new String(content.getBytes(StandardCharsets.UTF_8));
 
-                Map<String, String> langParam = new HashMap<>();
+                Map<String, Object> langParam = new HashMap<>();
                 langParam.put("text", content);
-                String langStr = RestHttpClient.doGet(LocalConfig.get(BusinessConstants.LandIdConfig.REMOTE_URL_KEY, String.class, ""));
+                String langStr = RestHttpClient.doPost(LocalConfig.get(BusinessConstants.LandIdConfig.REMOTE_URL_KEY, String.class, ""), langParam);
                 JSONObject langResult = JSON.parseObject(langStr);
                 String langCode = langResult.getString("langCode");
 
