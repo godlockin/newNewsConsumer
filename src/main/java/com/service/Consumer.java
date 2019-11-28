@@ -42,7 +42,8 @@ public class Consumer {
     @Autowired
     private ESService esService;
 
-    private String INDEX;
+    private static String INDEX;
+    private static String REMOTE_LANID_URL;
     private KafkaStreams kafkaStreams;
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
     private AtomicLong atomicLong = new AtomicLong(0);
@@ -50,6 +51,8 @@ public class Consumer {
     @PostConstruct
     void doHandle() {
         INDEX = LocalConfig.get(ESConfig.ES_INDEX_KEY, String.class, ESConfig.DEFAULT_ES_INDEX);
+        REMOTE_LANID_URL = LocalConfig.get(BusinessConstants.LandIdConfig.REMOTE_URL_KEY, String.class, "");
+
         kafkaStreams = initKafkaStreams();
         kafkaStreams.start();
 
@@ -132,7 +135,7 @@ public class Consumer {
 
                 Map<String, Object> langParam = new HashMap<>();
                 langParam.put("text", content);
-                String langStr = RestHttpClient.doPost(LocalConfig.get(BusinessConstants.LandIdConfig.REMOTE_URL_KEY, String.class, ""), langParam);
+                String langStr = RestHttpClient.doPost(REMOTE_LANID_URL, langParam);
                 JSONObject langResult = JSON.parseObject(langStr);
                 String langCode = langResult.getString("langCode");
 
