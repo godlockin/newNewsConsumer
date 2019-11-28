@@ -25,7 +25,7 @@ public class BusinessConstants {
     }
 
     public static class ESConfig {
-        public ESConfig() {}
+        private ESConfig() {}
 
         public static final String ES_BULK_SIZE_KEY = "elasticsearch.bulk.size";
         public static final String ES_BULK_FLUSH_KEY = "elasticsearch.bulk.flush";
@@ -45,5 +45,11 @@ public class BusinessConstants {
         public static final int DEFAULT_ES_CONNECT_TIMEOUT = 5000;
         public static final int DEFAULT_ES_SOCKET_TIMEOUT = 40000;
         public static final int DEFAULT_ES_CONNECTION_REQUEST_TIMEOUT = 1000;
+    }
+
+    public static class LandIdConfig {
+        private LandIdConfig() {}
+
+        public static final String REMOTE_URL_KEY = "langid.url";
     }
 }

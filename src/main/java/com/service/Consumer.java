@@ -3,6 +3,7 @@ package com.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.common.LocalConfig;
+import com.common.constants.BusinessConstants;
 import com.common.constants.BusinessConstants.ESConfig;
 import com.common.constants.BusinessConstants.KfkConfig;
 import com.common.utils.RestHttpClient;
@@ -17,17 +18,20 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.processor.TaskMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -40,7 +44,7 @@ public class Consumer {
     private String INDEX;
     private KafkaStreams kafkaStreams;
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
-    private AtomicInteger atomicInteger = new AtomicInteger(0);
+    private AtomicLong atomicLong = new AtomicLong(0);
 
     @PostConstruct
     void doHandle() {
@@ -48,7 +52,7 @@ public class Consumer {
         kafkaStreams = initKafkaStreams();
         kafkaStreams.start();
 
-//        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(statementRunnable(), 0, 5, TimeUnit.SECONDS);
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(statementRunnable(), 0, 5, TimeUnit.SECONDS);
     }
 
     public boolean stop() {
@@ -96,9 +100,9 @@ public class Consumer {
     }
 
     private void sinker(String key, Map<String, Object> value) {
-        atomicInteger.incrementAndGet();
+        atomicLong.incrementAndGet();
         esService.bulkInsert(INDEX, "id", value);
-        if (1000 == atomicInteger.intValue()) {
+        if (0 == atomicLong.longValue() % 1000) {
             log.info("Handled 1000 info");
         }
     }
@@ -114,6 +118,7 @@ public class Consumer {
 
                 String url = value.getString("oss_url");
                 tmp.put("ossUrl", url);
+                tmp.put("id", value.get("id"));
 
                 content = RestHttpClient.doGet(url);
 
@@ -122,7 +127,17 @@ public class Consumer {
                     return KeyValue.pair(key, result);
                 }
 
-                tmp.put("content", content);
+                Map<String, String> langParam = new HashMap<>();
+                langParam.put("text", content);
+                String langStr = RestHttpClient.doGet(LocalConfig.get(BusinessConstants.LandIdConfig.REMOTE_URL_KEY, String.class, ""));
+                JSONObject langResult = JSON.parseObject(langStr);
+                String langCode = langResult.getString("langCode");
+
+                if ("zh".equalsIgnoreCase(langCode)) {
+                    tmp.put("content", content);
+                } else {
+                    tmp.put("content_en", content);
+                }
 
                 Long timestamp = System.currentTimeMillis();
 
@@ -131,7 +146,7 @@ public class Consumer {
                 tmp.put("sourceName", value.get("source"));
                 tmp.put("title", value.get("title"));
                 tmp.put("sourceUrl", value.get("url"));
-                tmp.put("publishTime", value.get("pub_date"));
+                tmp.put("publishDate", value.get("pub_date"));
                 tmp.put("status", "ALIVE");
 
                 result = tmp;
@@ -152,25 +167,19 @@ public class Consumer {
             }
 
             ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
-            kafkaStreams.localThreadsMetadata().forEach(x -> {
-                String threadName = x.threadName();
-                Map<String, Object> threadStatement = new HashMap<>();
-                threadStatement.put("threadState", x.threadState());
+            statement.put("handledData", atomicLong.longValue());
 
-                Map<String, Object> activeTasks = new HashMap<>();
-                x.activeTasks().forEach(y -> activeTasks.put(y.taskId(),
-                        y.topicPartitions().stream()
-                                .map(z -> String.format(KfkConfig.TOPIC_POSITION_INFO, z.topic(), z.partition()))
-                                .collect(Collectors.toList())));
-                threadStatement.put("stactiveTasksate", activeTasks);
-
-                threadStatement.put("adminClientId", x.adminClientId());
-                threadStatement.put("consumerClientId", x.consumerClientId());
-
-                statement.put(threadName, threadStatement);
-            });
-
-            statement.put("metrics", kafkaStreams.metrics());
+            if (kafkaStreams.state().isRunning()) {
+                kafkaStreams.localThreadsMetadata().forEach(x -> {
+                    String threadName = x.threadName();
+                    Map<String, Object> threadStatement = new HashMap<>();
+                    threadStatement.put("threadState", x.threadState());
+                    threadStatement.put("stactiveTasksate", x.activeTasks().stream().map(TaskMetadata::taskId).collect(Collectors.toList()));
+                    threadStatement.put("adminClientId", x.adminClientId());
+                    threadStatement.put("consumerClientId", x.consumerClientId());
+                    statement.put(threadName, threadStatement);
+                });
+            }
 
             this.statement = new ConcurrentHashMap<>(statement);
         };
