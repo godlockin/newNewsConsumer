@@ -5,11 +5,11 @@ spring:
   application:
     name: newNewsConsumer
   profiles:
-    active: dev
+    active: monthly
 
 logging:
   config: classpath:logback-spring.xml
-  path: ./logs/newNewsConsumer
+  path: ./logs/newNewsConsumer/${spring.profiles.active}/
   pattern:
     dateformat: yyyyMMdd HH:mm:ss:SSS
     level: info
@@ -21,3 +21,7 @@ http:
   socketTimeout: 10000
   connectTimeout: 1000
   connectionRequestTimeout: 500
+
+tasks:
+  enableDailyJob: true
+  enableMonthlyJob: true

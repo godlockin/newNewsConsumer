@@ -45,6 +45,16 @@ public class BusinessConstants {
         public static final int DEFAULT_ES_CONNECT_TIMEOUT = 5000;
         public static final int DEFAULT_ES_SOCKET_TIMEOUT = 40000;
         public static final int DEFAULT_ES_CONNECTION_REQUEST_TIMEOUT = 1000;
+
+        public static final String YEARLY_INDEX_ALIAS = "new_news_yearly_current_reader";
+        public static final String MONTHLY_INDEX_ALIASES = "new_news_monthly_current_reader";
+    }
+
+    public static class TasksConfig {
+        private TasksConfig() {}
+
+        public static final String ENABLE_DAILY_JOB_KEY = "tasks.enableDailyJob";
+        public static final String ENABLE_MONTHLY_JOB_KEY = "tasks.enableMonthlyJob";
     }
 
     public static class LandIdConfig {

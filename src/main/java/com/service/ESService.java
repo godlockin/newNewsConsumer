@@ -2,9 +2,7 @@ package com.service;
 
 import com.alibaba.fastjson.JSON;
 import com.common.LocalConfig;
-import com.common.constants.BusinessConstants;
 import com.common.constants.BusinessConstants.ESConfig;
-import com.common.constants.BusinessConstants.SysConfig;
 import com.common.constants.ResultEnum;
 import com.common.utils.DataUtils;
 import com.exception.ConsumerException;
@@ -13,15 +11,24 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.*;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.bulk.*;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.RangeQueryBuilder;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.ReindexRequest;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -29,7 +36,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,10 +72,72 @@ public class ESService {
         }};
     }
 
-    public Integer bulkInsert(String index, String idKey, Map data) {
+    public void reIndex(String fromIndex, String toIndex, String fromTime, String toTime) {
+        ReindexRequest request = new ReindexRequest();
+        request.setSourceIndices(fromIndex);
+        request.setDestIndex(toIndex);
+        request.setSourceQuery(new RangeQueryBuilder("publishDate").from(fromTime).to(toTime));
+        request.setSourceBatchSize(1000);
+        request.setDestPipeline("new_news_yearly_pipeline");
+        restHighLevelClient.reindexAsync(request, COMMON_OPTIONS, new ActionListener<BulkByScrollResponse>() {
+            @Override
+            public void onResponse(BulkByScrollResponse bulkByScrollResponse) {
+                log.info("Reindex took {} for {} batches of {} data, {} failures, {} created {} updated"
+                        , bulkByScrollResponse.getTook().getMinutes()
+                        , bulkByScrollResponse.getBatches()
+                        , bulkByScrollResponse.getTotal()
+                        , bulkByScrollResponse.getBulkFailures().size()
+                        , bulkByScrollResponse.getCreated()
+                        , bulkByScrollResponse.getUpdated()
+                        );
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                e.printStackTrace();
+                log.error("Error happened during we do reindex from [{}] to [{}] range [{} - {}], {}"
+                        , fromIndex
+                        , toIndex
+                        , fromTime
+                        , toIndex
+                        , e
+                        );
+            }
+        });
+    }
+
+    public boolean doCheckAliases(String indexName, String indexAliases) throws ConsumerException {
+
+        try {
+            GetIndexRequest getIndexRequest = new GetIndexRequest(indexName);
+            boolean isIndexExists = restHighLevelClient.indices().exists(getIndexRequest, COMMON_OPTIONS);
+            if (isIndexExists) {
+                GetAliasesRequest requestWithAlias = new GetAliasesRequest(indexAliases);
+                boolean isAliasExists = restHighLevelClient.indices().existsAlias(requestWithAlias, COMMON_OPTIONS);
+                if (isAliasExists) {
+                    IndicesAliasesRequest indicesAliasesRequest =
+                            new IndicesAliasesRequest()
+                                    .addAliasAction(
+                                            new AliasActions(AliasActions.Type.REMOVE)
+                                                .index(indexName).alias(indexAliases));
+                    AcknowledgedResponse indicesAliasesResponse = restHighLevelClient.indices().updateAliases(indicesAliasesRequest, COMMON_OPTIONS);
+
+                    return indicesAliasesResponse.isAcknowledged();
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errMsg = String.format("Error happened during we remove alias [%s] from [%s], %s", indexAliases, indexName, e);
+            log.error(errMsg);
+            throw new ConsumerException(errMsg);
+        }
+    }
+
+    public Integer bulkInsert(String index, String idKey, Map<String, ?> data) {
 
         String pk = String.valueOf(DataUtils.getNotNullValue(data, idKey, Object.class, "")).trim();
-        IndexRequest indexRequest = new IndexRequest(index).type("_doc").source(data);
+        IndexRequest indexRequest = new IndexRequest(index).source(data);
         if (StringUtils.isNotBlank(pk)) {
             indexRequest.id(pk);
         }

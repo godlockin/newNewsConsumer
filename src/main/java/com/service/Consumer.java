@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +44,7 @@ public class Consumer {
     private ESService esService;
 
     private static String INDEX;
+    private static String APPID;
     private static String REMOTE_LANID_URL;
     private KafkaStreams kafkaStreams;
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
@@ -50,7 +52,10 @@ public class Consumer {
 
     @PostConstruct
     void doHandle() {
-        INDEX = LocalConfig.get(ESConfig.ES_INDEX_KEY, String.class, ESConfig.DEFAULT_ES_INDEX);
+        APPID = LocalConfig.get(KfkConfig.INPUT_APPID_KEY, String.class, "");
+        String indexPattern = LocalConfig.get(ESConfig.ES_INDEX_KEY, String.class, ESConfig.DEFAULT_ES_INDEX);
+        INDEX = String.format(indexPattern, APPID);
+
         REMOTE_LANID_URL = LocalConfig.get(BusinessConstants.LandIdConfig.REMOTE_URL_KEY, String.class, "");
 
         kafkaStreams = initKafkaStreams();
@@ -93,7 +98,7 @@ public class Consumer {
     private Properties getProps() {
 
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, LocalConfig.get(KfkConfig.INPUT_APPID_KEY, String.class, ""));
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, APPID + new Random().nextInt(10));
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, LocalConfig.get(KfkConfig.HOSTS_KEY, String.class, ""));
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());

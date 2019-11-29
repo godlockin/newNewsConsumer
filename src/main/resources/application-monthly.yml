@@ -1,14 +1,14 @@
 kafka:
   input:
     topic: spider-formated
-    appId: test
+    appId: monthly_
     hosts: 10.0.3.148:9092,10.0.3.147:9092,10.0.3.152:9092
   output:
     topic: es-archived
 
 elasticsearch:
   address: 10.0.15.27:9200,10.0.15.28:9200,10.0.15.29:9200
-  index: new_news_current_writer
+  index: new_news_%scurrent_writer
 
 langid:
   url: http://10.0.13.204:8080/langId

@@ -22,4 +22,9 @@ public class ConsumerException extends Exception {
         super(msg);
         this.code = code;
     }
+
+    public ConsumerException(String errMsg) {
+        super(errMsg);
+        this.code = ResultEnum.FAILURE.getCode();
+    }
 }
