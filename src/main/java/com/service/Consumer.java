@@ -185,7 +185,7 @@ public class Consumer {
                     String threadName = x.threadName();
                     Map<String, Object> threadStatement = new HashMap<>();
                     threadStatement.put("threadState", x.threadState());
-                    threadStatement.put("stactiveTasksate", x.activeTasks().stream().map(TaskMetadata::taskId).collect(Collectors.toList()));
+                    threadStatement.put("stactiveTasksate", x.activeTasks().stream().map(TaskMetadata::toString).collect(Collectors.toList()));
                     threadStatement.put("adminClientId", x.adminClientId());
                     threadStatement.put("consumerClientId", x.consumerClientId());
                     statement.put(threadName, threadStatement);

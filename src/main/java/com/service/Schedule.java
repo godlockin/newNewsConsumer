@@ -33,7 +33,7 @@ public class Schedule {
         ENABLE_MONTHLY_JOB = LocalConfig.get(BusinessConstants.TasksConfig.ENABLE_MONTHLY_JOB_KEY, Boolean.class, false);
     }
 
-    @Scheduled(cron = "0 0 2 * * * *")
+    @Scheduled(cron = "0 0 2 * * *")
     void dailyJob() {
 
         if (!ENABLE_DAILY_JOB) {
@@ -52,7 +52,7 @@ public class Schedule {
         );
     }
 
-    @Scheduled(cron = "0 30 2 1 0 ? *")
+    @Scheduled(cron = "0 30 2 1 * ?")
     void monthlyJob() throws ConsumerException {
 
         if (!ENABLE_MONTHLY_JOB) {
