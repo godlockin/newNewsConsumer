@@ -23,6 +23,7 @@ public class Schedule {
     @Autowired
     private ESService esService;
     private static DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static DateTimeFormatter MONTH_FORMAT = DateTimeFormatter.ofPattern("yyyyMM");
 
     private static Boolean ENABLE_DAILY_JOB;
     private static Boolean ENABLE_MONTHLY_JOB;
@@ -67,9 +68,16 @@ public class Schedule {
             doCheckAliases(yearlyIndex, ESConfig.YEARLY_INDEX_ALIAS);
         }
 
-        LocalDate twoMonthsAgo = localDate.plusMonths(-4L);
-        String monthlyIndex = String.format("new_news_monthly_%s", twoMonthsAgo.getYear());
+        LocalDate fourMonthsAgo = localDate.plusMonths(-4L);
+        String monthlyIndex = String.format("new_news_monthly_%s", fourMonthsAgo.getYear());
         doCheckAliases(monthlyIndex, ESConfig.MONTHLY_INDEX_ALIASES);
+
+        LocalDate twoMonthsAgo = localDate.plusMonths(-2L);
+        esService.reIndex(String.format("new_news_monthly_%s", twoMonthsAgo.format(MONTH_FORMAT))
+                , ESConfig.YEARLY_INDEX_ALIAS
+                , twoMonthsAgo.format(DATE_FORMAT)
+                , localDate.format(DATE_FORMAT)
+        );
     }
 
     private void doCheckAliases(String indexName, String indexAliases) throws ConsumerException {
