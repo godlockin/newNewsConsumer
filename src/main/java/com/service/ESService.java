@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 @EnableScheduling
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
-public class ESService {
+public class ESService extends AbsService {
 
     private String ES_ADDRESSES;
 
@@ -65,7 +65,7 @@ public class ESService {
     private AtomicLong submitCount = new AtomicLong(0);
     private AtomicLong failureCount = new AtomicLong(0);
 
-    public Map<String, Long> statement() {
+    public Map statement() {
         return new HashMap() {{
             put("submitted", submitCount.longValue());
             put("failure", failureCount.longValue());

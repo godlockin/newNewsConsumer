@@ -58,7 +58,7 @@ public class GuidService {
     }
 
     synchronized public static String getMd5(String base) {
-        return StringUtils.isBlank(base) ? base : byteArrayToHexString(md5.digest(base.trim().getBytes()));
+        return StringUtils.isBlank(base) ? "" : byteArrayToHexString(md5.digest(base.trim().getBytes()));
     }
 
     public static String getGuid(String base) {

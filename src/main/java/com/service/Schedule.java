@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Service
-@EnableScheduling
+//@EnableScheduling
 public class Schedule {
 
     @Autowired

@@ -6,6 +6,7 @@ import com.common.LocalConfig;
 import com.common.constants.BusinessConstants;
 import com.common.constants.BusinessConstants.ESConfig;
 import com.common.constants.BusinessConstants.KfkConfig;
+import com.common.utils.GuidService;
 import com.common.utils.RestHttpClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -38,7 +39,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class Consumer {
+public class Consumer extends AbsService{
 
     @Autowired
     private ESService esService;
@@ -88,9 +89,7 @@ public class Consumer {
                 .map(sourceMapper())
                 .filter((k, v) -> !CollectionUtils.isEmpty(v));
 
-        mapKStream.peek(this::sinker)
-//                .to((String) LocalConfig.get("kafka.output.topic", String.class, ""))
-        ;
+        mapKStream.peek(this::sinker);
 
         return new KafkaStreams(builder.build(), getProps());
     }
@@ -98,7 +97,7 @@ public class Consumer {
     private Properties getProps() {
 
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "test");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, APPID);
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, LocalConfig.get(KfkConfig.HOSTS_KEY, String.class, ""));
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -125,12 +124,12 @@ public class Consumer {
             try {
                 Map<String, Object> tmp = new HashMap<>();
 
-                String url = value.getString("oss_url");
-                tmp.put("ossUrl", url);
                 tmp.put("id", value.get("id"));
 
-                content = RestHttpClient.doGet(url);
+                String url = value.getString("oss_url");
+                tmp.put("ossUrl", url);
 
+                content = RestHttpClient.doGet(url);
                 if (StringUtils.isBlank(content)) {
                     log.error("No content for:[{}]", value);
                     return KeyValue.pair(key, result);
@@ -156,11 +155,18 @@ public class Consumer {
 
                 tmp.put("sourceName", value.get("source"));
                 tmp.put("title", value.get("title"));
-                tmp.put("sourceUrl", value.get("url"));
-                tmp.put("publishDate", value.get("pub_date"));
-                tmp.put("status", "ALIVE");
 
-                result = tmp;
+                String sourceUrl = value.getString("url");
+                tmp.put("sourceUrl", sourceUrl);
+                tmp.put("bundleKey", GuidService.getMd5(sourceUrl).toLowerCase());
+
+                tmp.put("publishDate", value.get("pub_date"));
+
+                tmp.put("separateDate", value.getOrDefault("pub_date", System.currentTimeMillis()));
+
+                tmp.put("delFlg", 0);
+
+                result = new HashMap<>(tmp);
             } catch (Exception e) {
                 e.printStackTrace();
                 log.error("Error happened on handling:[{}], {}", value, e);
