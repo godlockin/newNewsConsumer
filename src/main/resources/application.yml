@@ -5,7 +5,7 @@ spring:
   application:
     name: newNewsConsumer
   profiles:
-    active: monthly
+    active: ${ACTIVE_KEY}
 
 logging:
   config: classpath:logback-spring.xml

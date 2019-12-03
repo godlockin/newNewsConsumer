@@ -34,7 +34,16 @@ public class LocalConfig {
                 }
             }
         }
-        return (T) DataUtils.getNotNullValue(cache, k, clazz, defaultValue);
+
+        Object value = DataUtils.getNotNullValue(cache, k, clazz, defaultValue);
+        if (value instanceof String && String.valueOf(value).contains("$")) {
+            String valueStr = String.valueOf(value).trim();
+            valueStr = valueStr.replace("${", "").replace("}", "");
+            String envStr = System.getProperty(valueStr);
+            return (T) DataUtils.handleNullValue(envStr, clazz, defaultValue);
+        } else {
+            return (T) value;
+        }
     }
 
     public static Map<String, Object> get() {

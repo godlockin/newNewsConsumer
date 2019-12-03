@@ -1,3 +1,6 @@
+server:
+  port: 8082
+
 kafka:
   input:
     topic: spider-formated
