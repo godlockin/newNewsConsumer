@@ -34,7 +34,7 @@ public class Schedule {
         ENABLE_MONTHLY_JOB = LocalConfig.get(BusinessConstants.TasksConfig.ENABLE_MONTHLY_JOB_KEY, Boolean.class, false);
     }
 
-    @Scheduled(cron = "0 0 2 * * *")
+//    @Scheduled(cron = "0 0 2 * * *")
     void dailyJob() {
 
         if (!ENABLE_DAILY_JOB) {
