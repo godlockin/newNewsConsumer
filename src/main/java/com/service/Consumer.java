@@ -145,13 +145,7 @@ public class Consumer extends AbsService{
 
                 if ("zh".equalsIgnoreCase(langCode)) {
                     tmp.put("content", content);
-                } else {
-                    tmp.put("content_en", content);
                 }
-
-                Long timestamp = System.currentTimeMillis();
-
-                tmp.put("timestamp", timestamp);
 
                 tmp.put("sourceName", value.get("source"));
                 tmp.put("title", value.get("title"));
