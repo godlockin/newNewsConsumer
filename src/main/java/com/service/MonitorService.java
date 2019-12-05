@@ -1,5 +1,6 @@
 package com.service;
 
+import com.common.LocalConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -75,6 +76,8 @@ public class MonitorService {
 
             // consumer statement
             sysStatement.put("consumer", consumer.statement());
+
+            sysStatement.put("localConfig", LocalConfig.get());
         }, 0, 5, TimeUnit.SECONDS);
     }
 }

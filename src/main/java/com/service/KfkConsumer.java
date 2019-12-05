@@ -127,7 +127,6 @@ public class KfkConsumer extends AbsService {
             Map<String, Object> result = new HashMap<>();
             String content;
 
-            log.info(value.toJSONString());
             try {
                 Map<String, Object> tmp = new HashMap<>();
 
