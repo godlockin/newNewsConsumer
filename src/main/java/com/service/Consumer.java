@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +54,7 @@ public class Consumer extends AbsService{
 
     private static Boolean KEEP_ALIVE_FLG = true;
 
-    @PostConstruct
+//    @PostConstruct
     void doHandle() {
         APPID = LocalConfig.get(KfkConfig.INPUT_APPID_KEY, String.class, "");
         String indexPattern = LocalConfig.get(ESConfig.ES_INDEX_KEY, String.class, ESConfig.DEFAULT_ES_INDEX);
@@ -111,11 +112,12 @@ public class Consumer extends AbsService{
     private Properties getProps() {
 
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, APPID);
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "test");
+//        props.put(StreamsConfig.CLIENT_ID_CONFIG, APPID + GuidService.getGuid(""));
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, LocalConfig.get(KfkConfig.HOSTS_KEY, String.class, ""));
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
         props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, MyEventTimeExtractor.class);
 
@@ -136,6 +138,7 @@ public class Consumer extends AbsService{
             Map<String, Object> result = new HashMap<>();
             String content;
 
+            log.info(value.toJSONString());
             try {
                 Map<String, Object> tmp = new HashMap<>();
 
