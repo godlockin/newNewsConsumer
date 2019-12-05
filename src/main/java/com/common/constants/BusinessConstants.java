@@ -62,4 +62,19 @@ public class BusinessConstants {
 
         public static final String REMOTE_URL_KEY = "langid.url";
     }
+
+    public static class RedisConfig {
+        public RedisConfig() { }
+
+        public static String HOST_KEY = "host";
+        public static String PORT_KEY = "port";
+        public static String PASSWORD_KEY = "password";
+
+        public static String KEY_KEY = "key";
+        public static String OPT_KEY = "opt";
+        public static String DB_KEY = "db";
+        public static String EXPIRED_KEY = "expired";
+        public static String DELETE_OPT = "delete";
+        public static String REFRESH_OPT = "refresh";
+    }
 }
