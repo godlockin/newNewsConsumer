@@ -8,6 +8,7 @@ import com.common.constants.BusinessConstants.ESConfig;
 import com.common.constants.BusinessConstants.KfkConfig;
 import com.common.utils.GuidService;
 import com.common.utils.RestHttpClient;
+import com.service.kfkHack.MyEventTimeExtractor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -30,7 +31,6 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +51,8 @@ public class Consumer extends AbsService{
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
     private AtomicLong atomicLong = new AtomicLong(0);
 
+    private static Boolean KEEP_ALIVE_FLG = true;
+
     @PostConstruct
     void doHandle() {
         APPID = LocalConfig.get(KfkConfig.INPUT_APPID_KEY, String.class, "");
@@ -59,10 +61,13 @@ public class Consumer extends AbsService{
 
         REMOTE_LANID_URL = LocalConfig.get(BusinessConstants.LandIdConfig.REMOTE_URL_KEY, String.class, "");
 
+        KEEP_ALIVE_FLG = true;
+
         kafkaStreams = initKafkaStreams();
         kafkaStreams.start();
 
         Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(statementRunnable(), 0, 5, TimeUnit.SECONDS);
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(keepStreamAliveRunnable(), 0, 10, TimeUnit.SECONDS);
     }
 
     public boolean stop() {
@@ -70,7 +75,16 @@ public class Consumer extends AbsService{
     }
 
     public void start() {
+        if (null == kafkaStreams) {
+            kafkaStreams = initKafkaStreams();
+        }
+
+        if (kafkaStreams.state().isRunning()) {
+            return;
+        }
+
         kafkaStreams.start();
+        log.info("Restart dead stream");
     }
 
     public Map statement() {
@@ -103,6 +117,7 @@ public class Consumer extends AbsService{
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
+        props.put(StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG, MyEventTimeExtractor.class);
 
         return props;
     }
@@ -182,7 +197,18 @@ public class Consumer extends AbsService{
         };
     }
 
-    public Runnable statementRunnable() {
+    private Runnable keepStreamAliveRunnable() {
+        return () -> {
+
+            if (!KEEP_ALIVE_FLG) {
+                return;
+            }
+
+            start();
+        };
+    }
+
+    private Runnable statementRunnable() {
         return () -> {
 
             if (null == kafkaStreams) {
