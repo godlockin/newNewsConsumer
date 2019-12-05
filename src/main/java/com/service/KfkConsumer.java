@@ -7,6 +7,8 @@ import com.common.constants.BusinessConstants.ESConfig;
 import com.common.constants.BusinessConstants.KfkConfig;
 import com.common.constants.BusinessConstants.LandIdConfig;
 import com.common.utils.GuidService;
+import com.common.utils.RedisCache;
+import com.common.utils.RedisUtil;
 import com.common.utils.RestHttpClient;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -101,7 +103,24 @@ public class KfkConsumer extends AbsService {
                     .map(sourceMapper())
                     .filter(v -> !CollectionUtils.isEmpty(v))
                     .peek(x -> {
-                        // TODO cache info into redis
+
+                        String bundleKey = "";
+                        Map<String, String> tmp = new HashMap<>();
+                        for (Object obj : x.keySet()) {
+                            String k = String.valueOf(obj);
+                            String v = String.valueOf(x.getOrDefault(k, ""));
+                            if ("content".equalsIgnoreCase(k)) {
+                                continue;
+                            }
+
+                            if ("bundleKey".equalsIgnoreCase(k)) {
+                                bundleKey = v;
+                            }
+
+                            tmp.put(k, v);
+                        }
+
+                        RedisUtil.hmset(0, bundleKey, tmp);
                     })
                     .forEach(sinker());
 
@@ -130,8 +149,6 @@ public class KfkConsumer extends AbsService {
             try {
                 Map<String, Object> tmp = new HashMap<>();
 
-                tmp.put("id", value.get("id"));
-
                 String url = value.getString("content");
                 tmp.put("ossUrl", url);
 
@@ -148,6 +165,7 @@ public class KfkConsumer extends AbsService {
                         .replaceAll("[\\s\\p{Zs}]+", "")
                         .replaceAll("\\s*|\t|\r|\n", "")
                         .replaceAll("\\n", "")
+                        .replaceAll("&nbsp", "")
                         .trim();
 
                 Map<String, Object> langParam = new HashMap<>();
@@ -175,8 +193,6 @@ public class KfkConsumer extends AbsService {
                 tmp.put("publishDate", value.get("pub_date"));
 
                 tmp.put("separateDate", value.getOrDefault("pub_date", System.currentTimeMillis()));
-
-                tmp.put("delFlg", 0);
 
                 result = new HashMap<>(tmp);
             } catch (Exception e) {

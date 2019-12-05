@@ -13,3 +13,9 @@ elasticsearch:
 
 langid:
   url: http://10.0.13.204:8080/langId
+
+spring:
+  redis:
+    host: r-uf6msugry3djgblvj7.redis.rds.aliyuncs.com
+    password: HDRM3XTYQujrTKTh
+    port: 6379
