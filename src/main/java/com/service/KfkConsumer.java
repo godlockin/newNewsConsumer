@@ -3,7 +3,9 @@ package com.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.common.LocalConfig;
-import com.common.constants.BusinessConstants;
+import com.common.constants.BusinessConstants.ESConfig;
+import com.common.constants.BusinessConstants.KfkConfig;
+import com.common.constants.BusinessConstants.LandIdConfig;
 import com.common.utils.GuidService;
 import com.common.utils.RestHttpClient;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -14,9 +16,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.kstream.ValueMapper;
-import org.apache.kafka.streams.processor.TaskMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -29,7 +28,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Slf4j
@@ -50,14 +48,14 @@ public class KfkConsumer extends AbsService {
     @PostConstruct
     void init() {
 
-        APPID = LocalConfig.get(BusinessConstants.KfkConfig.INPUT_APPID_KEY, String.class, "");
-        String indexPattern = LocalConfig.get(BusinessConstants.ESConfig.ES_INDEX_KEY, String.class, BusinessConstants.ESConfig.DEFAULT_ES_INDEX);
+        APPID = LocalConfig.get(KfkConfig.INPUT_APPID_KEY, String.class, "");
+        String indexPattern = LocalConfig.get(ESConfig.ES_INDEX_KEY, String.class, ESConfig.DEFAULT_ES_INDEX);
         INDEX = String.format(indexPattern, APPID);
 
-        REMOTE_LANID_URL = LocalConfig.get(BusinessConstants.LandIdConfig.REMOTE_URL_KEY, String.class, "");
+        REMOTE_LANID_URL = LocalConfig.get(LandIdConfig.REMOTE_URL_KEY, String.class, "");
 
         consumer = new KafkaConsumer<>(getProps());
-        List<String> topicList = Collections.singletonList(LocalConfig.get(BusinessConstants.KfkConfig.INPUT_TOPIC_KEY, String.class, ""));
+        List<String> topicList = Collections.singletonList(LocalConfig.get(KfkConfig.INPUT_TOPIC_KEY, String.class, ""));
         consumer.subscribe(topicList);
 
         final ThreadFactory threadFactory = new ThreadFactoryBuilder()
@@ -193,7 +191,7 @@ public class KfkConsumer extends AbsService {
     private Properties getProps() {
 
         Properties properties = new Properties();
-        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, LocalConfig.get(BusinessConstants.KfkConfig.HOSTS_KEY, String.class, ""));
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, LocalConfig.get(KfkConfig.HOSTS_KEY, String.class, ""));
         properties.put(ConsumerConfig.CLIENT_ID_CONFIG, APPID + GuidService.getGuid("SC"));
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, APPID);
         properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
