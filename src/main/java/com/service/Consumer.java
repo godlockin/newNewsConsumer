@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@Deprecated
 public class Consumer extends AbsService{
 
     @Autowired

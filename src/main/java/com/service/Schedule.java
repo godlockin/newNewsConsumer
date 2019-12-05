@@ -19,6 +19,7 @@ import java.util.Date;
 @Slf4j
 @Service
 //@EnableScheduling
+@Deprecated
 public class Schedule {
 
     @Autowired
