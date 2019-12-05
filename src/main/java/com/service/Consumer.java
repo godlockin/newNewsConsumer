@@ -126,7 +126,7 @@ public class Consumer extends AbsService{
 
                 tmp.put("id", value.get("id"));
 
-                String url = value.getString("oss_url");
+                String url = value.getString("content");
                 tmp.put("ossUrl", url);
 
                 content = RestHttpClient.doGet(url);
@@ -137,6 +137,13 @@ public class Consumer extends AbsService{
 
                 content = new String(content.getBytes(StandardCharsets.UTF_8));
 
+                content = content
+                        .replaceAll("<[.[^>]]*>", "")
+                        .replaceAll("[\\s\\p{Zs}]+", "")
+                        .replaceAll("\\s*|\t|\r|\n", "")
+                        .replaceAll("\\n", "")
+                        .trim();
+
                 Map<String, Object> langParam = new HashMap<>();
                 langParam.put("text", content);
                 String langStr = RestHttpClient.doPost(REMOTE_LANID_URL, langParam);
@@ -145,6 +152,9 @@ public class Consumer extends AbsService{
 
                 if ("zh".equalsIgnoreCase(langCode)) {
                     tmp.put("content", content);
+                } else {
+                    log.error("Not Chinese content for:[{}]", value);
+                    return KeyValue.pair(key, result);
                 }
 
                 tmp.put("sourceName", value.get("source"));
@@ -152,7 +162,9 @@ public class Consumer extends AbsService{
 
                 String sourceUrl = value.getString("url");
                 tmp.put("sourceUrl", sourceUrl);
-                tmp.put("bundleKey", GuidService.getMd5(sourceUrl).toLowerCase());
+
+                String bundleKey = (String) value.getOrDefault("bundle_key", GuidService.getMd5(sourceUrl).toLowerCase());
+                tmp.put("bundleKey", bundleKey);
 
                 tmp.put("publishDate", value.get("pub_date"));
 
