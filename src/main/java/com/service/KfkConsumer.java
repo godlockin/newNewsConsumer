@@ -232,37 +232,4 @@ public class KfkConsumer extends AbsService {
             this.statement = new ConcurrentHashMap<>(statement);
         };
     }
-
-    public static void main(String[] args) throws ConsumerException {
-        String url = "http://ipo-oss.aigauss.com/news_image/6672a92d5c89d53ca5ecc6154f843a96/content.html";
-
-        RestHttpClient client = new RestHttpClient();
-        client.initClient();
-        String content = RestHttpClient.doGet(url);
-
-        content = content
-                .replaceAll("<[.[^>]]*>", "");
-
-        content = content
-                .replaceAll("[\\s\\p{Zs}]+", "");
-
-        content = content
-                .replaceAll("\\s*|\t|\r|\n", "");
-
-        content = content
-                .replaceAll("\\n", "");
-
-        content = content
-                .replaceAll("&nbsp", "")
-                .trim();
-
-        System.out.println(content);
-
-        Map<String, Object> langParam = new HashMap<>();
-        langParam.put("text", content);
-        String langStr = RestHttpClient.doPost("http://10.0.13.204:8080/langId", langParam);
-        JSONObject langResult = JSON.parseObject(langStr);
-
-        System.out.println(langResult);
-    }
 }
