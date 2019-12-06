@@ -137,7 +137,7 @@ public class KfkConsumer extends AbsService {
             atomicLong.incrementAndGet();
             esService.bulkInsert(INDEX, "bundleKey", value);
             if (0 == atomicLong.longValue() % 1000) {
-                log.info("Handled {} info", atomicLong.longValue() * 1000);
+                log.info("Handled {} info", atomicLong.longValue());
             }
         };
     }
