@@ -10,6 +10,7 @@ import com.common.utils.GuidService;
 import com.common.utils.RedisCache;
 import com.common.utils.RedisUtil;
 import com.common.utils.RestHttpClient;
+import com.exception.ConsumerException;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -168,18 +169,18 @@ public class KfkConsumer extends AbsService {
                         .replaceAll("&nbsp", "")
                         .trim();
 
-                Map<String, Object> langParam = new HashMap<>();
-                langParam.put("text", content);
-                String langStr = RestHttpClient.doPost(REMOTE_LANID_URL, langParam);
-                JSONObject langResult = JSON.parseObject(langStr);
-                String langCode = langResult.getString("langCode");
-
-                if ("zh".equalsIgnoreCase(langCode)) {
+//                Map<String, Object> langParam = new HashMap<>();
+//                langParam.put("text", content);
+//                String langStr = RestHttpClient.doPost(REMOTE_LANID_URL, langParam);
+//                JSONObject langResult = JSON.parseObject(langStr);
+//                String langCode = langResult.getString("langCode");
+//
+//                if ("zh".equalsIgnoreCase(langCode)) {
                     tmp.put("content", content);
-                } else {
-                    log.error("Not Chinese content for:[{}]", value);
-                    return result;
-                }
+//                } else {
+//                    log.error("Not Chinese content for:[{}]", value);
+//                    return result;
+//                }
 
                 tmp.put("sourceName", value.get("source"));
                 tmp.put("title", value.get("title"));
@@ -230,5 +231,38 @@ public class KfkConsumer extends AbsService {
 
             this.statement = new ConcurrentHashMap<>(statement);
         };
+    }
+
+    public static void main(String[] args) throws ConsumerException {
+        String url = "http://ipo-oss.aigauss.com/news_image/6672a92d5c89d53ca5ecc6154f843a96/content.html";
+
+        RestHttpClient client = new RestHttpClient();
+        client.initClient();
+        String content = RestHttpClient.doGet(url);
+
+        content = content
+                .replaceAll("<[.[^>]]*>", "");
+
+        content = content
+                .replaceAll("[\\s\\p{Zs}]+", "");
+
+        content = content
+                .replaceAll("\\s*|\t|\r|\n", "");
+
+        content = content
+                .replaceAll("\\n", "");
+
+        content = content
+                .replaceAll("&nbsp", "")
+                .trim();
+
+        System.out.println(content);
+
+        Map<String, Object> langParam = new HashMap<>();
+        langParam.put("text", content);
+        String langStr = RestHttpClient.doPost("http://10.0.13.204:8080/langId", langParam);
+        JSONObject langResult = JSON.parseObject(langStr);
+
+        System.out.println(langResult);
     }
 }

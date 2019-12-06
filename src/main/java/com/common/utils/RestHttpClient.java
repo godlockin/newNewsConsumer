@@ -49,7 +49,7 @@ public class RestHttpClient {
     private static CloseableHttpClient closeableHttpClient;
 
     @PostConstruct
-    void initClient() {
+    public void initClient() {
         requestConfig = RequestConfig.DEFAULT;
 
         restTemplate = new RestTemplate(getFactory());
