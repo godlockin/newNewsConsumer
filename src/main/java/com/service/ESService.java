@@ -16,7 +16,11 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.*;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.bulk.*;
+import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
@@ -29,6 +33,9 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.ReindexRequest;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -36,12 +43,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Component
@@ -146,7 +154,7 @@ public class ESService extends AbsService {
         return 1;
     }
 
-    @Scheduled(cron = "0 30 2 * * ?")
+//    @Scheduled(cron = "0 30 2 * * ?")
     public void refreshESClient() throws ConsumerException {
         initESClient();
     }
@@ -294,5 +302,43 @@ public class ESService extends AbsService {
             log.error(errMsg);
             throw new ConsumerException(ResultEnum.ES_CLIENT_CLOSE);
         }
+    }
+
+    public Map scroll(Map queryParam) throws IOException {
+
+        String scrollId = (String) queryParam.get("scrollId");
+        String timeValue = (String) queryParam.getOrDefault("timeValue", "1h");
+        TimeValue tv = TimeValue.parseTimeValue(timeValue, "timeValue");
+        SearchResponse response;
+        if (StringUtils.isNotBlank(scrollId)) {
+            response = restHighLevelClient.scroll(new SearchScrollRequest(scrollId).scroll(tv), COMMON_OPTIONS);
+        } else {
+
+            String index = (String) queryParam.get("index");
+            Integer size = (Integer) queryParam.getOrDefault("size", 1000);
+            SearchRequest searchRequest = new SearchRequest()
+                    .indices(index)
+                    .source(new SearchSourceBuilder()
+                            .size(size)
+                            .fetchSource(new String[] {"bundleKey"}, new String[0]));
+
+            if (!restHighLevelClient.indices().exists(new GetIndexRequest(index), COMMON_OPTIONS)) {
+                return new HashMap();
+            }
+
+            response = restHighLevelClient.search(searchRequest.scroll(tv), COMMON_OPTIONS);
+        }
+
+        return buildResult(response);
+    }
+
+    private Map buildResult(SearchResponse response) {
+        Map result = new HashMap();
+        List dataList = Stream.of(response.getHits().getHits()).map(SearchHit::getSourceAsMap).collect(Collectors.toList());
+        result.put("data", dataList);
+
+        result.put("scrollId", response.getScrollId());
+
+        return result;
     }
 }

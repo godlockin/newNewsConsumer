@@ -74,6 +74,20 @@ public class RedisUtil {
 		return exists;
 	}
 
+	public static Long del(Integer db, String key) {
+		JedisPool pool = RedisCache.getPool(db);
+		if (null == pool || StringUtils.isBlank(key)) {
+			return 0L;
+		}
+		try (Jedis jedis = pool.getResource();) {
+			return jedis.del(key);
+		} catch (Exception e) {
+			// TODO: handle exception
+			log.error(e.getMessage());
+			return null;
+		}
+	}
+
 	public static Long hdel(Integer db,String key, String field) {
 		JedisPool pool = RedisCache.getPool(db);
 		if (null == pool || StringUtils.isBlank(key) || StringUtils.isBlank(field)) {
