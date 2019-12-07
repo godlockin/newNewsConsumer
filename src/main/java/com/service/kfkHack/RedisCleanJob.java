@@ -25,7 +25,7 @@ public class RedisCleanJob {
 
 //    @PostConstruct
     private void clean() throws IOException {
-        LocalDate startDate = LocalDate.now().plusYears(-10L);
+        LocalDate startDate = LocalDate.now().plusYears(-5L);
         LocalDate endDate = LocalDate.of(1878, 7, 1);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMM");
 

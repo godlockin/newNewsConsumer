@@ -182,7 +182,8 @@ public class KfkConsumer extends AbsService {
 //                    return result;
 //                }
 
-                tmp.put("sourceName", value.get("source"));
+                tmp.put("domain", value.getOrDefault("domain", ""));
+                tmp.put("sourceName", value.getOrDefault("source", ""));
                 tmp.put("title", value.get("title"));
 
                 String sourceUrl = value.getString("url");
