@@ -1,9 +1,5 @@
 package com.common.constants;
 
-import java.util.Arrays;
-import java.util.List;
-
-@SuppressWarnings({"unchecked"})
 public class BusinessConstants {
 
     public static class SysConfig {
@@ -20,8 +16,7 @@ public class BusinessConstants {
         public static final String INPUT_APPID_KEY = "kafka.input.appId";
         public static final String HOSTS_KEY = "kafka.input.hosts";
         public static final String INPUT_TOPIC_KEY = "kafka.input.topic";
-
-        public static final String TOPIC_POSITION_INFO = "Topic:[{}] Position:[{}]";
+        public static final String OUTPUT_TOPIC_KEY = "kafka.output.topic";
     }
 
     public static class ESConfig {
@@ -69,12 +64,5 @@ public class BusinessConstants {
         public static String HOST_KEY = "host";
         public static String PORT_KEY = "port";
         public static String PASSWORD_KEY = "password";
-
-        public static String KEY_KEY = "key";
-        public static String OPT_KEY = "opt";
-        public static String DB_KEY = "db";
-        public static String EXPIRED_KEY = "expired";
-        public static String DELETE_OPT = "delete";
-        public static String REFRESH_OPT = "refresh";
     }
 }

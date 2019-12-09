@@ -52,6 +52,8 @@ public class LocalConfig {
 
     @PostConstruct
     public static void sysInit() {
+        log.debug("Init {}", LocalConfig.class.getName());
+
         // cache base config
         putAll(loadYamlConfig(SysConfig.BASE_CONFIG));
 

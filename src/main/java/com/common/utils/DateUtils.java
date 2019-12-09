@@ -4,6 +4,9 @@ import com.common.constants.ResultEnum;
 import com.exception.ConsumerException;
 
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.BiFunction;
 
@@ -13,6 +16,7 @@ public class DateUtils {
     public static final String DATE_YYYYMMDD = "yyyyMMdd";
     public static final String DATE_YYYYMM = "yyyyMM";
     public static final String DEFAULT_DATE_FORMAT = DATE_YYYYMMDD_HHMMSS;
+    public static final DateTimeFormatter DEFAULT_TIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATE_FORMAT);
 
     public enum DATE_TYPE {
         YEAR("year")
@@ -53,6 +57,10 @@ public class DateUtils {
             e.printStackTrace();
             throw new ConsumerException(ResultEnum.PARAMETER_CHECK);
         }
+    }
+
+    public static String getSHDate() {
+        return ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).format(DEFAULT_TIME_FORMATTER);
     }
 
     public static String formatDate(Date date) {

@@ -6,6 +6,8 @@ kafka:
     topic: spider-formated
     appId: monthly
     hosts: 10.0.9.62:9092,10.0.9.63:9092,10.0.9.67:9092
+  output:
+    topic: newton-article
 
 elasticsearch:
   address: 10.0.9.80:9200,10.0.9.81:9200

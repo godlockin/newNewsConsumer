@@ -5,6 +5,7 @@ import com.common.constants.BusinessConstants.RedisConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -12,6 +13,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Protocol;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
@@ -20,6 +22,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @Order(0)
+@DependsOn("localConfig")
 public class RedisUtil {
 
 	@Value("${spring.redis.host}")
@@ -150,9 +153,18 @@ public class RedisUtil {
 			return result;
 		}
 
-		try (Jedis jedis = pool.getResource();) {
+		try (Jedis jedis = pool.getResource()) {
 			result = jedis.hmset(key, info);
+		} catch (JedisConnectionException connE) {
+			connE.printStackTrace();
+			try {
+				Thread.sleep(1000);
+				hmset(db, key, info);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			log.error(e.getMessage());
 		}
 		return result;
@@ -160,6 +172,7 @@ public class RedisUtil {
 
 	@PostConstruct
 	public static void init() {
+		log.debug("Init {}", RedisUtil.class.getName());
 
 		String host = LocalConfig.get("spring.redis.host", String.class, "");
 		Integer port = LocalConfig.get("spring.redis.port", Integer.class, 0);
@@ -178,14 +191,15 @@ public class RedisUtil {
 		Integer port = DataUtils.getNotNullValue(config, RedisConfig.PORT_KEY, Integer.class, Protocol.DEFAULT_PORT);
 		String password = DataUtils.getNotNullValue(config, RedisConfig.PASSWORD_KEY, String.class, "");
 
+		JedisPool pool = new JedisPool();
 		if (StringUtils.isNotBlank(host) &&
 				StringUtils.isNotBlank(password) &&
 				0 < port &&
 				0 <= database) {
-			return new JedisPool(getConfig(), host, port, Protocol.DEFAULT_TIMEOUT, password, database);
-		} else {
-			return null;
+			pool = new JedisPool(getConfig(), host, port, Protocol.DEFAULT_TIMEOUT, password, database);
+			log.debug(pool.getResource().info());
 		}
+		return pool;
 	}
 
 	private static JedisPoolConfig getConfig() {
