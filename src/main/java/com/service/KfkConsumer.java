@@ -1,18 +1,14 @@
 package com.service;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.common.LocalConfig;
-import com.common.constants.BusinessConstants.ESConfig;
-import com.common.constants.BusinessConstants.KfkConfig;
-import com.common.constants.BusinessConstants.LandIdConfig;
+import com.common.constants.BusinessConstants.*;
 import com.common.utils.*;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -21,18 +17,16 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
 @Slf4j
@@ -51,7 +45,9 @@ public class KfkConsumer extends AbsService {
     private KafkaProducer<String, String> producer;
 
     private ScheduledExecutorService scheduledExecutorService;
-    private AtomicLong atomicLong = new AtomicLong(0);
+    private AtomicLong consumedCount = new AtomicLong(0);
+    private AtomicLong producedCount = new AtomicLong(0);
+    private AtomicLong errorCount = new AtomicLong(0);
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -96,38 +92,37 @@ public class KfkConsumer extends AbsService {
     private void loop() {
 
         try {
+
             StreamSupport.stream(consumer.poll(Duration.ofSeconds(20)).spliterator(), true)
                     .filter(x -> !(null == x || StringUtils.isBlank(x.value())))
                     .map(ConsumerRecord::value)
                     .map(JSON::parseObject)
-                    .filter(v -> StringUtils.isNotBlank(v.getString("content")))
+                    .filter(v -> StringUtils.isNotBlank(v.getString(DataConfig.CONTENT_KEY)))
                     .map(NewsKfkHandleUtil.sourceMapper())
                     .filter(v -> !CollectionUtils.isEmpty(v))
                     .peek(NewsKfkHandleUtil.redisSinker())
-                    .peek(esSinker())
-                    .peek(x -> x.put("entryTime", DateUtils.getSHDate()))
-                    .forEach(kfkOutputSinker());
+                    .peek(x -> countAndLog(consumedCount, "Handled {} data", this.esSinker(), x))
+                    .peek(x -> x.put(DataConfig.ENTRYTIME_KEY, DateUtils.getSHDate()))
+                    .forEach(x -> countAndLog(producedCount, "Published {} data", this.kfkOutputSinker(), x));
+
         } catch (Exception e) {
             log.error("Original-news-consumer error", e);
+            errorCount.incrementAndGet();
         } finally {
             consumer.commitSync();
         }
     }
 
-    private java.util.function.Consumer<Map> kfkOutputSinker() {
-
-        return value -> producer.send(new ProducerRecord(IMTERMEDIA_TOPIC, value.get("bundleKey"), JSON.toJSONString(value)));
+    private void countAndLog(AtomicLong count, String logPattern, Consumer<Map> consumer, Map data) {
+        consumer.accept(data);
+        if (0 == count.incrementAndGet() % 1000) {
+            log.info(logPattern, consumedCount.longValue());
+        }
     }
 
-    private java.util.function.Consumer<Map> esSinker() {
-        return value -> {
-            atomicLong.incrementAndGet();
-            esService.bulkInsert(INDEX, "bundleKey", value);
-            if (0 == atomicLong.longValue() % 1000) {
-                log.info("Handled {} info", atomicLong.longValue());
-            }
-        };
-    }
+    private Consumer<Map> kfkOutputSinker() { return value -> producer.send(new ProducerRecord(IMTERMEDIA_TOPIC, value.get(DataConfig.BUNDLE_KEY), JSON.toJSONString(value))); }
+
+    private Consumer<Map> esSinker() { return value -> esService.bulkInsert(INDEX, DataConfig.BUNDLE_KEY, value); }
 
     private Properties getProps() {
 
@@ -155,7 +150,9 @@ public class KfkConsumer extends AbsService {
             }
 
             ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
-            statement.put("handledData", atomicLong.longValue());
+            statement.put("consumedCount", consumedCount.longValue());
+            statement.put("producedCount", producedCount.longValue());
+            statement.put("errorCount", errorCount.longValue());
 
             this.statement = new ConcurrentHashMap<>(statement);
         };

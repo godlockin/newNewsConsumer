@@ -1,6 +1,7 @@
 package com.common.utils;
 
 import com.alibaba.fastjson.JSONObject;
+import com.common.constants.BusinessConstants.DataConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -23,8 +24,8 @@ public class NewsKfkHandleUtil {
             try {
                 Map<String, Object> tmp = new HashMap<>();
 
-                String url = value.getString("content");
-                tmp.put("ossUrl", url);
+                String url = value.getString(DataConfig.CONTENT_KEY);
+                tmp.put(DataConfig.OSSURL_KEY, url);
 
                 String content = RestHttpClient.doGet(url);
                 if (StringUtils.isBlank(content)) {
@@ -38,7 +39,7 @@ public class NewsKfkHandleUtil {
                         .replaceAll("<[.[^>]]*>", "")
                         .replaceAll("[\\s\\p{Zs}]+", "")
                         .replaceAll("\\s*|\t|\r|\n", "")
-                        .replaceAll("\\n", "")
+                        .replaceAll("\n|\r\n|\\n|\\t", "")
                         .replaceAll("&nbsp", "")
                         .trim();
 
@@ -47,24 +48,24 @@ public class NewsKfkHandleUtil {
                     return result;
                 }
 
-                tmp.put("content", content);
+                tmp.put(DataConfig.CONTENT_KEY, content);
 
-                tmp.put("domain", value.getOrDefault("domain", ""));
-                tmp.put("sourceName", value.getOrDefault("source", ""));
-                tmp.put("title", value.get("title"));
+                tmp.put(DataConfig.DOMAIN_KEY, value.getOrDefault(DataConfig.DOMAIN_KEY, ""));
+                tmp.put(DataConfig.SOURCENAME_KEY, value.getOrDefault("source", ""));
+                tmp.put(DataConfig.TITLE_KEY, value.get(DataConfig.TITLE_KEY));
 
                 String sourceUrl = value.getString("url");
-                tmp.put("sourceUrl", sourceUrl);
+                tmp.put(DataConfig.SOURCEURL_KEY, sourceUrl);
 
                 String bundleKey = (String) value.getOrDefault("bundle_key", GuidService.getMd5(sourceUrl).toLowerCase());
-                tmp.put("bundleKey", bundleKey);
+                tmp.put(DataConfig.BUNDLE_KEY, bundleKey);
 
                 Object publishDate = value.get("pub_date");
                 Long timestamp = System.currentTimeMillis();
 
-                tmp.put("publishDate", publishDate);
+                tmp.put(DataConfig.PUBLISHDATE_KEY, publishDate);
 
-                tmp.put("separateDate", Optional.ofNullable(publishDate).orElse(timestamp));
+                tmp.put(DataConfig.SEPARATEDATE_KEY, Optional.ofNullable(publishDate).orElse(timestamp));
 
                 result = new HashMap<>(tmp);
             } catch (Exception e) {
@@ -79,9 +80,9 @@ public class NewsKfkHandleUtil {
 
     public static Consumer<Map> redisSinker() {
         return value -> {
-            String bundleKey = (String) value.get("bundleKey");
+            String bundleKey = (String) value.get(DataConfig.BUNDLE_KEY);
             Map<String, String> tmp = new HashMap(value);
-            tmp.remove("content");
+            tmp.remove(DataConfig.CONTENT_KEY);
             RedisUtil.hmset(0, bundleKey, tmp);
         };
     }

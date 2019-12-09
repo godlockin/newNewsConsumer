@@ -10,6 +10,22 @@ public class BusinessConstants {
         public static final String CONFIG_TEMPLATE = "application-%s.yml";
     }
 
+    public static class DataConfig {
+        private DataConfig() {}
+
+        public static final String BUNDLE_KEY = "bundleKey";
+        public static final String CONTENT_KEY = "content";
+        public static final String OSSURL_KEY = "ossUrl";
+        public static final String DOMAIN_KEY = "domain";
+        public static final String SOURCENAME_KEY = "sourceName";
+        public static final String TITLE_KEY = "title";
+        public static final String SOURCEURL_KEY = "sourceUrl";
+        public static final String PUBLISHDATE_KEY = "publishDate";
+        public static final String SEPARATEDATE_KEY = "separateDate";
+        public static final String ENTRYTIME_KEY = "entryTime";
+
+    }
+
     public static class KfkConfig {
         private KfkConfig() {}
 
