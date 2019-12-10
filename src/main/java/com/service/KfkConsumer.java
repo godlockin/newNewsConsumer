@@ -45,6 +45,8 @@ public class KfkConsumer extends AbsService {
     private KafkaProducer<String, String> producer;
 
     private ScheduledExecutorService scheduledExecutorService;
+    private AtomicLong processedCount = new AtomicLong(0);
+    private AtomicLong redisCachedCount = new AtomicLong(0);
     private AtomicLong consumedCount = new AtomicLong(0);
     private AtomicLong producedCount = new AtomicLong(0);
     private AtomicLong errorCount = new AtomicLong(0);
@@ -99,10 +101,11 @@ public class KfkConsumer extends AbsService {
                     .map(JSON::parseObject)
                     .filter(v -> StringUtils.isNotBlank(v.getString(DataConfig.CONTENT_KEY)))
                     .map(NewsKfkHandleUtil.sourceMapper())
+                    .peek(x -> countAndLog(processedCount, "Operated {} data", y -> {}, x))
                     .filter(v -> !CollectionUtils.isEmpty(v))
-                    .peek(NewsKfkHandleUtil.redisSinker())
                     .peek(x -> countAndLog(consumedCount, "Handled {} data", this.esSinker(), x))
                     .peek(x -> x.put(DataConfig.ENTRYTIME_KEY, DateUtils.getSHDate()))
+                    .peek(x -> countAndLog(redisCachedCount, "Cached {} data into redis", NewsKfkHandleUtil.redisSinker(), x))
                     .forEach(x -> countAndLog(producedCount, "Published {} data", this.kfkOutputSinker(), x));
 
         } catch (Exception e) {
@@ -151,6 +154,7 @@ public class KfkConsumer extends AbsService {
 
             ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
             statement.put("consumedCount", consumedCount.longValue());
+            statement.put("redisCachedCount", redisCachedCount.longValue());
             statement.put("producedCount", producedCount.longValue());
             statement.put("errorCount", errorCount.longValue());
 
