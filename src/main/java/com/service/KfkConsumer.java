@@ -3,18 +3,15 @@ package com.service;
 import com.alibaba.fastjson.JSON;
 import com.common.LocalConfig;
 import com.common.constants.BusinessConstants.*;
+import com.common.constants.KfkProperties;
 import com.common.utils.*;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
@@ -62,9 +59,9 @@ public class KfkConsumer extends AbsService {
 
         REMOTE_LANID_URL = LocalConfig.get(LandIdConfig.REMOTE_URL_KEY, String.class, "");
 
-        producer = new KafkaProducer<>(getProps());
+        producer = new KafkaProducer<>(KfkProperties.getProps(APPID));
 
-        consumer = new KafkaConsumer<>(getProps());
+        consumer = new KafkaConsumer<>(KfkProperties.getProps(APPID));
         List<String> topicList = Collections.singletonList(LocalConfig.get(KfkConfig.INPUT_TOPIC_KEY, String.class, ""));
         consumer.subscribe(topicList);
 
@@ -126,24 +123,6 @@ public class KfkConsumer extends AbsService {
     private Consumer<Map> kfkOutputSinker() { return value -> producer.send(new ProducerRecord(IMTERMEDIA_TOPIC, value.get(DataConfig.BUNDLE_KEY), JSON.toJSONString(value))); }
 
     private Consumer<Map> esSinker() { return value -> esService.bulkInsert(INDEX, DataConfig.BUNDLE_KEY, value); }
-
-    private Properties getProps() {
-
-        Properties properties = new Properties();
-        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, LocalConfig.get(KfkConfig.HOSTS_KEY, String.class, ""));
-        properties.put(ConsumerConfig.CLIENT_ID_CONFIG, APPID + GuidService.getGuid("SC"));
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, APPID);
-        properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 5000);
-        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-
-        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-
-        return properties;
-    }
 
     private Runnable statementRunnable() {
         return () -> {

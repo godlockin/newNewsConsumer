@@ -30,7 +30,7 @@ public class Schedule {
     private static Boolean ENABLE_DAILY_JOB;
     private static Boolean ENABLE_MONTHLY_JOB;
 
-    @PostConstruct
+//    @PostConstruct
     void init() {
         ENABLE_DAILY_JOB = LocalConfig.get(BusinessConstants.TasksConfig.ENABLE_DAILY_JOB_KEY, Boolean.class, false);
         ENABLE_MONTHLY_JOB = LocalConfig.get(BusinessConstants.TasksConfig.ENABLE_MONTHLY_JOB_KEY, Boolean.class, false);

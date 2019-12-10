@@ -320,7 +320,8 @@ public class ESService extends AbsService {
                     .indices(index)
                     .source(new SearchSourceBuilder()
                             .size(size)
-                            .fetchSource(new String[] {"bundleKey"}, new String[0]));
+//                            .fetchSource(new String[] {"bundleKey"}, new String[0])
+                    );
 
             if (!restHighLevelClient.indices().exists(new GetIndexRequest(index), COMMON_OPTIONS)) {
                 return new HashMap();

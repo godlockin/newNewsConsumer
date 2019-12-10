@@ -155,17 +155,13 @@ public class RedisUtil {
 
 		try (Jedis jedis = pool.getResource()) {
 			result = jedis.hmset(key, info);
-		} catch (JedisConnectionException connE) {
-			connE.printStackTrace();
-			try {
-				Thread.sleep(1000);
-				hmset(db, key, info);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		} catch (JedisConnectionException jc) {
+			jc.printStackTrace();
+			log.error("Key:[{}], Value:[{}], {}", key, info, jc);
+			hmset(db, key, info);
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.error(e.getMessage());
+			log.error("Key:[{}], Value:[{}], {}", key, info, e);
 		}
 		return result;
 	}
