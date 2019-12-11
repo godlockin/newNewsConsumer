@@ -83,6 +83,9 @@ public class NewsKfkHandleUtil {
             String bundleKey = (String) value.get(DataConfig.BUNDLE_KEY);
             Map<String, String> tmp = new HashMap(value);
             tmp.remove(DataConfig.CONTENT_KEY);
+            tmp.entrySet().parallelStream()
+                    .filter(e -> StringUtils.isBlank(e.getValue()))
+                    .forEach(e -> tmp.put(e.getKey(), ""));
             RedisUtil.hmset(0, bundleKey, tmp);
         };
     }
