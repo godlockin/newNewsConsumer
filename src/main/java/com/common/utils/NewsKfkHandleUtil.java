@@ -79,13 +79,15 @@ public class NewsKfkHandleUtil {
 
 
     public static Consumer<Map> redisSinker() {
-        return value -> {
+        return (Map value) -> {
             String bundleKey = (String) value.get(DataConfig.BUNDLE_KEY);
-            Map<String, String> tmp = new HashMap(value);
-            tmp.remove(DataConfig.CONTENT_KEY);
-            tmp.entrySet().parallelStream()
-                    .filter(e -> StringUtils.isBlank(e.getValue()))
-                    .forEach(e -> tmp.put(e.getKey(), ""));
+            Map<String, String> tmp = new HashMap<>();
+            value.entrySet().parallelStream()
+                    .filter(e -> !DataConfig.CONTENT_KEY.equalsIgnoreCase((String) ((Map.Entry) e).getKey()))
+                    .forEach(e -> {
+                        Map.Entry entry = (Map.Entry) e;
+                        tmp.put(entry.getKey().toString(), Optional.ofNullable(entry.getValue()).orElse("").toString());
+                    });
             RedisUtil.hmset(0, bundleKey, tmp);
         };
     }
