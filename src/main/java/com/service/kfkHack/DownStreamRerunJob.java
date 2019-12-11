@@ -29,7 +29,8 @@ public class DownStreamRerunJob {
 
 //    @PostConstruct
     private void rerun() throws IOException {
-        LocalDate startDate = LocalDate.now();
+        log.info("Do rerun job");
+        LocalDate startDate = LocalDate.of(2019, 7, 1);
         LocalDate endDate = LocalDate.of(1900, 1, 1);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMM");
 
@@ -45,7 +46,7 @@ public class DownStreamRerunJob {
 
             Map queryParam = new HashMap();
             queryParam.put("index", trgtIndex);
-            queryParam.put("size", 1000);
+            queryParam.put("size", 10000);
             queryParam.put("timeValue", "1h");
             Map result = sourceClient.scroll(queryParam);
             List<Map> dataList = (List) result.getOrDefault("data", new ArrayList<>());

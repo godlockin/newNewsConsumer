@@ -1,6 +1,7 @@
 package com.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.common.LocalConfig;
 import com.common.constants.BusinessConstants.*;
 import com.common.constants.KfkProperties;
@@ -38,12 +39,14 @@ public class KfkConsumer extends AbsService {
     private static String APPID;
     private static String IMTERMEDIA_TOPIC;
     private static String REMOTE_LANID_URL;
+    private static String REMOTE_SUMMARY_URL;
     private KafkaConsumer<String, String> consumer;
     private KafkaProducer<String, String> producer;
 
     private ScheduledExecutorService scheduledExecutorService;
     private AtomicLong processedCount = new AtomicLong(0);
     private AtomicLong redisCachedCount = new AtomicLong(0);
+    private AtomicLong summaryCount = new AtomicLong(0);
     private AtomicLong consumedCount = new AtomicLong(0);
     private AtomicLong producedCount = new AtomicLong(0);
     private AtomicLong errorCount = new AtomicLong(0);
@@ -58,6 +61,7 @@ public class KfkConsumer extends AbsService {
         INDEX = String.format(indexPattern, APPID);
 
         REMOTE_LANID_URL = LocalConfig.get(LandIdConfig.REMOTE_URL_KEY, String.class, "");
+        REMOTE_SUMMARY_URL = LocalConfig.get(SummaryConfig.REMOTE_URL_KEY, String.class, "");
 
         producer = new KafkaProducer<>(KfkProperties.getProps(APPID));
 
@@ -99,10 +103,13 @@ public class KfkConsumer extends AbsService {
                     .filter(v -> StringUtils.isNotBlank(v.getString(DataConfig.CONTENT_KEY)))
                     .map(NewsKfkHandleUtil.sourceMapper())
                     .peek(x -> countAndLog(processedCount, "Operated {} data", y -> {}, x))
-                    .filter(v -> !CollectionUtils.isEmpty(v))
-                    .peek(x -> countAndLog(consumedCount, "Handled {} data", this.esSinker(), x))
+                    .filter(x -> !CollectionUtils.isEmpty(x))
+                    .filter(x -> !RedisUtil.exists(0, (String) x.get(DataConfig.BUNDLE_KEY)))
                     .peek(x -> x.put(DataConfig.ENTRYTIME_KEY, DateUtils.getSHDate()))
                     .peek(x -> countAndLog(redisCachedCount, "Cached {} data into redis", NewsKfkHandleUtil.redisSinker(), x))
+                    .peek(x -> x.remove(DataConfig.ENTRYTIME_KEY))
+                    .peek(x -> countAndLog(summaryCount, "Generated {} summary data", this.summaryGenerater(), x))
+                    .peek(x -> countAndLog(consumedCount, "Saved {} data into ES", this.esSinker(), x))
                     .forEach(x -> countAndLog(producedCount, "Published {} data", this.kfkOutputSinker(), x));
 
         } catch (Exception e) {
@@ -118,6 +125,31 @@ public class KfkConsumer extends AbsService {
         if (0 == count.incrementAndGet() % 1000) {
             log.info(logPattern, consumedCount.longValue());
         }
+    }
+
+    private Consumer<Map> summaryGenerater() {
+        return value -> {
+            String content = (String) value.get(DataConfig.CONTENT_KEY);
+            content = content.length() > 10000 ? content.substring(0, 10000) : content;
+            Map<String, String> param = new HashMap<>();
+            param.put("content", content);
+            param.put("size", "200");
+
+            String summary = "";
+
+            try {
+                String resultStr = RestHttpClient.doPost(REMOTE_SUMMARY_URL, param);
+                JSONObject resultJson = JSON.parseObject(resultStr);
+                if ("success".equalsIgnoreCase(resultJson.getString("message"))) {
+                    summary = resultJson.getString("data");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.error("Error happened when we call for summary for id:[{}]", value.get(DataConfig.BUNDLE_KEY));
+            }
+
+            value.put(DataConfig.SUMMARY_KEY, summary);
+        };
     }
 
     private Consumer<Map> kfkOutputSinker() { return value -> producer.send(new ProducerRecord(IMTERMEDIA_TOPIC, value.get(DataConfig.BUNDLE_KEY), JSON.toJSONString(value))); }

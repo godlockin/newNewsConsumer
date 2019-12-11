@@ -15,6 +15,7 @@ public class BusinessConstants {
 
         public static final String BUNDLE_KEY = "bundleKey";
         public static final String CONTENT_KEY = "content";
+        public static final String SUMMARY_KEY = "summary";
         public static final String OSSURL_KEY = "ossUrl";
         public static final String DOMAIN_KEY = "domain";
         public static final String SOURCENAME_KEY = "sourceName";
@@ -72,6 +73,12 @@ public class BusinessConstants {
         private LandIdConfig() {}
 
         public static final String REMOTE_URL_KEY = "langid.url";
+    }
+
+    public static class SummaryConfig {
+        private SummaryConfig() {}
+
+        public static final String REMOTE_URL_KEY = "summary.url";
     }
 
     public static class RedisConfig {
