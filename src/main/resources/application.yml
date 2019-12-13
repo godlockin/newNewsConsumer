@@ -9,7 +9,7 @@ spring:
 
 logging:
   config: classpath:logback-spring.xml
-  path: /usr/local/logs/newNewsConsumer/${spring.profiles.active}/
+  path: ./logs/newNewsConsumer/${spring.profiles.active}/
   pattern:
     dateformat: yyyyMMdd HH:mm:ss:SSS
     level: info

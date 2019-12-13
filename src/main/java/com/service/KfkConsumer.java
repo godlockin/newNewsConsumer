@@ -52,7 +52,7 @@ public class KfkConsumer extends AbsService {
     private AtomicLong errorCount = new AtomicLong(0);
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
 
-    @PostConstruct
+//    @PostConstruct
     void init() {
         log.info("Init {}", KfkConsumer.class.getName());
 

@@ -195,7 +195,7 @@ public class ESService extends AbsService {
                     getBPListener())
                     .setBulkActions(ES_BULK_FLUSH)
                     .setBulkSize(new ByteSizeValue(ES_BULK_SIZE, ByteSizeUnit.MB))
-                    .setFlushInterval(TimeValue.timeValueSeconds(10L))
+                    .setFlushInterval(TimeValue.timeValueSeconds(20L))
                     .setConcurrentRequests(ES_BULK_CONCURRENT)
                     .setBackoffPolicy(BackoffPolicy.constantBackoff(TimeValue.timeValueSeconds(1L), 3))
                     .build();
