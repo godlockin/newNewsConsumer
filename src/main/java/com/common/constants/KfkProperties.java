@@ -13,14 +13,14 @@ import java.util.Properties;
 @Component
 public class KfkProperties {
 
-    public static Properties getProps(String appId) {
+    public static Properties getProps(boolean isProducer, String appId) {
 
         Properties properties = new Properties();
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, LocalConfig.get(BusinessConstants.KfkConfig.HOSTS_KEY, String.class, ""));
-        properties.put(ConsumerConfig.CLIENT_ID_CONFIG, appId + GuidService.getGuid("SC"));
+        properties.put(ConsumerConfig.CLIENT_ID_CONFIG, appId + "_" + GuidService.getGuid(isProducer ? "producer" : "consumer"));
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, appId);
-        properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 5000);
+        properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());

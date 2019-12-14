@@ -2,6 +2,7 @@ package com.service;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.common.FailureQueue;
 import com.common.LocalConfig;
 import com.common.constants.BusinessConstants.*;
 import com.common.constants.KfkProperties;
@@ -20,6 +21,9 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -52,8 +56,14 @@ public class KfkConsumer extends AbsService {
     private AtomicLong errorCount = new AtomicLong(0);
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
 
-//    @PostConstruct
+    @PostConstruct
     void init() {
+
+        String activeFlg = LocalConfig.get("spring.profiles.active", String.class, "monthly");
+        if ("job".equalsIgnoreCase(activeFlg)) {
+            return;
+        }
+
         log.info("Init {}", KfkConsumer.class.getName());
 
         APPID = LocalConfig.get(KfkConfig.INPUT_APPID_KEY, String.class, "");
@@ -63,9 +73,9 @@ public class KfkConsumer extends AbsService {
         REMOTE_LANID_URL = LocalConfig.get(LandIdConfig.REMOTE_URL_KEY, String.class, "");
         REMOTE_SUMMARY_URL = LocalConfig.get(SummaryConfig.REMOTE_URL_KEY, String.class, "");
 
-        producer = new KafkaProducer<>(KfkProperties.getProps(APPID));
+        producer = new KafkaProducer<>(KfkProperties.getProps(true, APPID));
 
-        consumer = new KafkaConsumer<>(KfkProperties.getProps(APPID));
+        consumer = new KafkaConsumer<>(KfkProperties.getProps(false, APPID));
         List<String> topicList = Collections.singletonList(LocalConfig.get(KfkConfig.INPUT_TOPIC_KEY, String.class, ""));
         consumer.subscribe(topicList);
 
@@ -80,6 +90,7 @@ public class KfkConsumer extends AbsService {
         scheduledExecutorService.scheduleWithFixedDelay(this::loop, 1000, 5, TimeUnit.MILLISECONDS);
 
         Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(statementRunnable(), 0, 5, TimeUnit.SECONDS);
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(failureItemsDumpRunnable(), 0, 1, TimeUnit.HOURS);
     }
 
     @Override
@@ -170,6 +181,25 @@ public class KfkConsumer extends AbsService {
             statement.put("errorCount", errorCount.longValue());
 
             this.statement = new ConcurrentHashMap<>(statement);
+        };
+    }
+
+    private Runnable failureItemsDumpRunnable() {
+        return () -> {
+            List<String> list = FailureQueue.getAndClean();
+            if (CollectionUtils.isEmpty(list)) {
+                return;
+            }
+
+            String filePath = "/usr/local/failureLog/" + new Date().getTime() + "_failRecords.log";
+            try (BufferedWriter out = new BufferedWriter(new FileWriter(new File(filePath)))) {
+                for (String line : list) {
+                    out.write(line);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.error("Error happened during we record failure data into:[{}], {}", filePath, e);
+            }
         };
     }
 }

@@ -15,13 +15,9 @@ logging:
     level: info
 
 http:
-  defaultMaxPerRoute: 20
-  maxTotal: 100
+  defaultMaxPerRoute: 10
+  maxTotal: 1000
   staleConnectionCheckEnabled: true
   socketTimeout: 10000
   connectTimeout: 1000
-  connectionRequestTimeout: 500
-
-tasks:
-  enableDailyJob: true
-  enableMonthlyJob: true
+  connectionRequestTimeout: 5000

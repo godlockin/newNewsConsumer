@@ -1,6 +1,7 @@
 package com.service;
 
 import com.alibaba.fastjson.JSON;
+import com.common.FailureQueue;
 import com.common.LocalConfig;
 import com.common.constants.BusinessConstants.ESConfig;
 import com.common.constants.ResultEnum;
@@ -16,7 +17,6 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.*;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.bulk.*;
-import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -30,16 +30,15 @@ import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.reindex.BulkByScrollResponse;
 import org.elasticsearch.index.reindex.ReindexRequest;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -236,6 +235,14 @@ public class ESService extends AbsService {
                                     , failure.getCause().getMessage()
                             );
                             log.error("Bulk executionId:[{}] has error messages:\t{}", executionId, msg);
+
+                            String errMsg = failure.getCause().getMessage();
+                            errMsg = errMsg.contains("startOffset=-1") ? "startOffset=-1" : errMsg;
+
+                            List<String> items = Arrays.asList(x.getIndex(), x.getId(), errMsg);
+
+                            FailureQueue.add(String.join(",", items) + "\n");
+
                             count.incrementAndGet();
                         }
                     });
@@ -315,19 +322,25 @@ public class ESService extends AbsService {
         } else {
 
             String index = (String) queryParam.get("index");
-            Integer size = (Integer) queryParam.getOrDefault("size", 1000);
-            SearchRequest searchRequest = new SearchRequest()
-                    .indices(index)
-                    .source(new SearchSourceBuilder()
-                            .size(size)
-//                            .fetchSource(new String[] {"bundleKey"}, new String[0])
-                    );
 
             if (!restHighLevelClient.indices().exists(new GetIndexRequest(index), COMMON_OPTIONS)) {
                 return new HashMap();
             }
 
-            response = restHighLevelClient.search(searchRequest.scroll(tv), COMMON_OPTIONS);
+            Integer size = (Integer) queryParam.getOrDefault("size", 1000);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().size(size);
+
+            if (queryParam.containsKey("ids")) {
+                List idList = (List) queryParam.get("ids");
+                searchSourceBuilder.query(QueryBuilders.idsQuery().addIds((String[]) idList.toArray(new String[0])));
+            }
+
+            SearchRequest searchRequest = new SearchRequest()
+                    .indices(index).scroll(tv)
+                    .source(searchSourceBuilder);
+
+            log.debug(searchRequest.source().toString());
+            response = restHighLevelClient.search(searchRequest, COMMON_OPTIONS);
         }
 
         return buildResult(response);

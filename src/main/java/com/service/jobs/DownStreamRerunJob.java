@@ -30,7 +30,7 @@ public class DownStreamRerunJob extends ESRelatedJobs {
 
         String appid = LocalConfig.get(KfkConfig.INPUT_APPID_KEY, String.class, "");
         topic = LocalConfig.get(KfkConfig.OUTPUT_TOPIC_KEY, String.class, "");
-        producer = new KafkaProducer<>(KfkProperties.getProps(appid));
+        producer = new KafkaProducer<>(KfkProperties.getProps(true, appid));
     }
 
     @Override
