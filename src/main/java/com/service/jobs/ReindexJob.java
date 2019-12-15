@@ -1,19 +1,17 @@
 package com.service.jobs;
 
-import com.common.FailureQueue;
+import com.common.RetryQueue;
 import com.common.utils.DataUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,7 +34,14 @@ public class ReindexJob extends ESRelatedJobs {
     public void scrollJob(Map param) {
         log.info("Start to do [{}] job for param:[{}]", jobName(), param);
 
-        FailureQueue.clean();
+//        FailureQueue.clean();
+        Map<String, Integer> retryRecords = RetryQueue.get();
+        Integer thisRetry = 0;
+        if (!CollectionUtils.isEmpty(retryRecords)) {
+            thisRetry = new ArrayList<>(retryRecords.values()).get(0);
+
+            log.warn("Retry for {} time with {} records", thisRetry, retryRecords.size());
+        }
 
         fromIndex = DataUtils.getNotNullValue(param, "fromIndex", String.class, "");
         toIndex = DataUtils.getNotNullValue(param, "toIndex", String.class, "");
@@ -75,10 +80,17 @@ public class ReindexJob extends ESRelatedJobs {
             log.info("Reindex {} data from {} to {}", count, fromIndex, toIndex);
         }
 
-        List<String> idList = FailureQueue.getAndClean();
-        if (!CollectionUtils.isEmpty(idList)) {
-            param.put("ids", idList);
-            scrollJob(param);
+        retryRecords = RetryQueue.get();
+        if (!CollectionUtils.isEmpty(retryRecords)) {
+            Integer t = thisRetry;
+            List<String> tmp = retryRecords.entrySet().stream().filter(x -> t.equals(x.getValue())).map(Map.Entry::getKey).collect(Collectors.toList());
+            tmp.forEach(RetryQueue::remove);
+
+            retryRecords = RetryQueue.get();
+            if (!CollectionUtils.isEmpty(retryRecords)) {
+                param.put("ids", new ArrayList<>(retryRecords.keySet()));
+                scrollJob(param);
+            }
         }
     }
 }

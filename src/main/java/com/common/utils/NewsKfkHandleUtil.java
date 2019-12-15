@@ -50,11 +50,14 @@ public class NewsKfkHandleUtil {
 
                 tmp.put(DataConfig.CONTENT_KEY, content);
 
-                tmp.put(DataConfig.DOMAIN_KEY, value.getOrDefault(DataConfig.DOMAIN_KEY, ""));
+                String domain = (String) value.getOrDefault(DataConfig.DOMAIN_KEY, "");
+                String sourceUrl = value.getString("url");
+                domain = Optional.ofNullable(domain).orElse(URLUtil.getDomainName(sourceUrl));
+
+                tmp.put(DataConfig.DOMAIN_KEY, domain);
                 tmp.put(DataConfig.SOURCENAME_KEY, value.getOrDefault("source", ""));
                 tmp.put(DataConfig.TITLE_KEY, value.get(DataConfig.TITLE_KEY));
 
-                String sourceUrl = value.getString("url");
                 tmp.put(DataConfig.SOURCEURL_KEY, sourceUrl);
 
                 String bundleKey = (String) value.getOrDefault("bundle_key", GuidService.getMd5(sourceUrl).toLowerCase());

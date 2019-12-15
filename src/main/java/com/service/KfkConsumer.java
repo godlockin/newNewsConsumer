@@ -56,7 +56,7 @@ public class KfkConsumer extends AbsService {
     private AtomicLong errorCount = new AtomicLong(0);
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
 
-    @PostConstruct
+//    @PostConstruct
     void init() {
 
         String activeFlg = LocalConfig.get("spring.profiles.active", String.class, "monthly");
@@ -90,7 +90,6 @@ public class KfkConsumer extends AbsService {
         scheduledExecutorService.scheduleWithFixedDelay(this::loop, 1000, 5, TimeUnit.MILLISECONDS);
 
         Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(statementRunnable(), 0, 5, TimeUnit.SECONDS);
-        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(failureItemsDumpRunnable(), 0, 1, TimeUnit.HOURS);
     }
 
     @Override
@@ -181,25 +180,6 @@ public class KfkConsumer extends AbsService {
             statement.put("errorCount", errorCount.longValue());
 
             this.statement = new ConcurrentHashMap<>(statement);
-        };
-    }
-
-    private Runnable failureItemsDumpRunnable() {
-        return () -> {
-            List<String> list = FailureQueue.getAndClean();
-            if (CollectionUtils.isEmpty(list)) {
-                return;
-            }
-
-            String filePath = "/usr/local/failureLog/" + new Date().getTime() + "_failRecords.log";
-            try (BufferedWriter out = new BufferedWriter(new FileWriter(new File(filePath)))) {
-                for (String line : list) {
-                    out.write(line);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                log.error("Error happened during we record failure data into:[{}], {}", filePath, e);
-            }
         };
     }
 }

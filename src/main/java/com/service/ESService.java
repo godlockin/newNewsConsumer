@@ -3,6 +3,7 @@ package com.service;
 import com.alibaba.fastjson.JSON;
 import com.common.FailureQueue;
 import com.common.LocalConfig;
+import com.common.RetryQueue;
 import com.common.constants.BusinessConstants.ESConfig;
 import com.common.constants.ResultEnum;
 import com.common.utils.DataUtils;
@@ -40,10 +41,15 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -198,6 +204,8 @@ public class ESService extends AbsService {
                     .setConcurrentRequests(ES_BULK_CONCURRENT)
                     .setBackoffPolicy(BackoffPolicy.constantBackoff(TimeValue.timeValueSeconds(1L), 3))
                     .build();
+
+            Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(failureItemsDumpRunnable(), 0, 1, TimeUnit.HOURS);
         } catch (Exception e) {
             e.printStackTrace();
             String errMsg = "Error happened when we init ES transport client" + e;
@@ -237,7 +245,10 @@ public class ESService extends AbsService {
                             log.error("Bulk executionId:[{}] has error messages:\t{}", executionId, msg);
 
                             String errMsg = failure.getCause().getMessage();
-                            errMsg = errMsg.contains("startOffset=-1") ? "startOffset=-1" : errMsg;
+                            if (errMsg.contains("startOffset=-1")) {
+                                errMsg = "startOffset=-1";
+                                RetryQueue.add(x.getId());
+                            }
 
                             List<String> items = Arrays.asList(x.getIndex(), x.getId(), errMsg);
 
@@ -354,5 +365,36 @@ public class ESService extends AbsService {
         result.put("scrollId", response.getScrollId());
 
         return result;
+    }
+
+
+    private Runnable failureItemsDumpRunnable() {
+        return () -> {
+            List<String> list = FailureQueue.getAndClean();
+            if (CollectionUtils.isEmpty(list)) {
+                return;
+            }
+
+            String filePath = "./log/" + new Date().getTime() + "_failRecords.log";
+            File logFile = new File(filePath);
+            try {
+                if (!logFile.createNewFile()) {
+                    log.error("Error happened during we create logfile");
+                    return;
+                }
+
+                try (BufferedWriter out = new BufferedWriter(new FileWriter(logFile))) {
+                    for (String line : list) {
+                        out.write(line);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.error("Error happened during we record failure data into:[{}], {}", filePath, e);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.error("Error happened during we record failure data into:[{}], {}", filePath, e);
+            }
+        };
     }
 }
