@@ -200,7 +200,7 @@ public class ESService extends AbsService {
                     getBPListener())
                     .setBulkActions(ES_BULK_FLUSH)
                     .setBulkSize(new ByteSizeValue(ES_BULK_SIZE, ByteSizeUnit.MB))
-                    .setFlushInterval(TimeValue.timeValueSeconds(20L))
+                    .setFlushInterval(TimeValue.timeValueSeconds(10L))
                     .setConcurrentRequests(ES_BULK_CONCURRENT)
                     .setBackoffPolicy(BackoffPolicy.constantBackoff(TimeValue.timeValueSeconds(1L), 3))
                     .build();
@@ -375,12 +375,14 @@ public class ESService extends AbsService {
                 return;
             }
 
-            String filePath = "./log/" + new Date().getTime() + "_failRecords.log";
+            String filePath = "/usr/local/logs/newNewsConsumer/" + new Date().getTime() + "_failRecords.log";
             File logFile = new File(filePath);
             try {
-                if (!logFile.createNewFile()) {
-                    log.error("Error happened during we create logfile");
-                    return;
+                if (!logFile.exists()) {
+                    if (!logFile.createNewFile()) {
+                        log.error("Error happened during we create logfile");
+                        return;
+                    }
                 }
 
                 try (BufferedWriter out = new BufferedWriter(new FileWriter(logFile))) {

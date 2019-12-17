@@ -67,6 +67,15 @@ public class BusinessConstants {
 
         public static final String ENABLE_DAILY_JOB_KEY = "tasks.enableDailyJob";
         public static final String ENABLE_MONTHLY_JOB_KEY = "tasks.enableMonthlyJob";
+
+        public static final String CORE_JOB_KEY = "job";
+        public static final String BATCH_JOB_KEY = "batch";
+        public static final String NORMAL_JOB_KEY = "monthly";
+
+        public static final String NORMAL_ES_INDEX_KEY = "elasticsearch.normalIndex";
+        public static final String EXTRA_ES_INDEX_KEY = "elasticsearch.extraIndex";
+        public static final String ISSUE_ES_INDEX_KEY = "elasticsearch.extraIndex";
+        public static final String DEFAULT_ISSUE_INDEX = "newton_original_doc_issue";
     }
 
     public static class LandIdConfig {

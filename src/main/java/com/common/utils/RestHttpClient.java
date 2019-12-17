@@ -64,9 +64,9 @@ public class RestHttpClient {
         // 长连接保持时长30秒
         PoolingHttpClientConnectionManager pollingConnectionManager = new PoolingHttpClientConnectionManager(30, TimeUnit.SECONDS);
         // 最大连接数
-        pollingConnectionManager.setMaxTotal(200);
+        pollingConnectionManager.setMaxTotal(2000);
         // 单路由的并发数
-        pollingConnectionManager.setDefaultMaxPerRoute(50);
+        pollingConnectionManager.setDefaultMaxPerRoute(500);
 
         closeableHttpClient = HttpClients.custom()
                 .setConnectionManager(pollingConnectionManager)

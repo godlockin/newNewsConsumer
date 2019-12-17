@@ -14,6 +14,7 @@ public class DateUtils {
 
     public static final String DATE_YYYYMMDD_HHMMSS = "yyyy-MM-dd HH:mm:ss";
     public static final String DATE_YYYYMMDD = "yyyyMMdd";
+    public static final String DATE_YYYY_MM_DD = "yyyy-MM-dd";
     public static final String DATE_YYYYMM = "yyyyMM";
     public static final String DEFAULT_DATE_FORMAT = DATE_YYYYMMDD_HHMMSS;
     public static final DateTimeFormatter DEFAULT_TIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATE_FORMAT);

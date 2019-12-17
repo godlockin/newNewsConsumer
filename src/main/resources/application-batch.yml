@@ -4,17 +4,19 @@ server:
 kafka:
   input:
     topic: spider-formated
-    appId: yearly
+    appId: dump
     hosts: 10.0.9.62:9092,10.0.9.63:9092,10.0.9.67:9092
   output:
     topic: newton-article
 
 elasticsearch:
   address: 10.0.9.80:9200,10.0.9.81:9200
-  index: newton_original_doc_%s
+  normalIndex: newton_original_doc_monthly
+  extraIndex: newton_original_doc_yearly
+  issueIndex: newton_original_doc_issue
   bulk:
-    flush: 20
-    size: 1
+    flush: 5000
+    size: 10
 
 langid:
   url: http://10.0.13.204:8080/langId
