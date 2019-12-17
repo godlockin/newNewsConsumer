@@ -248,6 +248,14 @@ public class KfkConsumer extends AbsService {
             statement.put("producedCount", producedCount.longValue());
             statement.put("errorCount", errorCount.longValue());
 
+            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executorService;
+            statement.put("activeCount", threadPoolExecutor.getActiveCount());
+            statement.put("completedTaskCount", threadPoolExecutor.getCompletedTaskCount());
+            statement.put("maximumPoolSize", threadPoolExecutor.getMaximumPoolSize());
+            statement.put("poolSize", threadPoolExecutor.getPoolSize());
+            statement.put("taskCount", threadPoolExecutor.getTaskCount());
+            statement.put("queueSize", threadPoolExecutor.getQueue().size());
+
             this.statement = new ConcurrentHashMap<>(statement);
         };
     }
