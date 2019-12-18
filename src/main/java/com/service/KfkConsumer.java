@@ -237,29 +237,36 @@ public class KfkConsumer extends AbsService {
                 .filter(x -> !CollectionUtils.isEmpty(x))
                 .peek(x -> countAndLog(summaryCount, "Generated {} summary data", summaryGenerater(), x))
                 .filter(x -> StringUtils.isNotBlank((String) x.getOrDefault(DataConfig.PUBLISHDATE_KEY, "")))
-                .peek(x -> countAndLog(producedCount, "Published {} data", this.kfkOutputSinker(), x))
-                .forEach(x -> {
+                .peek(x -> {
                     try {
                         String publishDate = (String) x.get(DataConfig.PUBLISHDATE_KEY);
-                        publishDate = publishDate.trim();
-                        publishDate = 10 == publishDate.length() ? publishDate + " 00:00:00" : publishDate;
 
-                        Date pubDate = DateUtils.parseDate(publishDate);
+                        if (StringUtils.isBlank(publishDate)) {
+                            x.remove(DataConfig.PUBLISHDATE_KEY);
 
-                        if (nextDate.after(pubDate)) {
                             countAndLog(normalDataCount, "Saved {} data into [" + NORMAL_INDEX + "]", esSinker(NORMAL_INDEX), x);
-
-                            if (lastThreeMonthDate.before(pubDate)) {
-                                countAndLog(extraDataCount, "Saved {} data into [" + EXTRA_INDEX + "]", esSinker(EXTRA_INDEX), x);
-                            }
                         } else {
-                            countAndLog(issueDataCount, "Saved {} data into [" + ISSUE_INDEX + "]", esSinker(ISSUE_INDEX), x);
+                            publishDate = publishDate.trim();
+                            publishDate = 10 == publishDate.length() ? publishDate + " 00:00:00" : publishDate;
+
+                            Date pubDate = DateUtils.parseDate(publishDate);
+                            if (nextDate.after(pubDate)) {
+                                countAndLog(normalDataCount, "Saved {} data into [" + NORMAL_INDEX + "]", esSinker(NORMAL_INDEX), x);
+
+                                if (lastThreeMonthDate.before(pubDate)) {
+                                    countAndLog(extraDataCount, "Saved {} data into [" + EXTRA_INDEX + "]", esSinker(EXTRA_INDEX), x);
+                                }
+                            } else {
+                                countAndLog(issueDataCount, "Saved {} data into [" + ISSUE_INDEX + "]", esSinker(ISSUE_INDEX), x);
+                            }
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                         log.error("Date parse failure:[{}], {}", x, e);
                     }
-                });
+                })
+                .forEach(x -> countAndLog(producedCount, "Published {} data", this.kfkOutputSinker(), x));
+        ;
     }
 
     private Consumer<Map> summaryGenerater() {
