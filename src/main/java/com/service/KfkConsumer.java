@@ -64,7 +64,7 @@ public class KfkConsumer extends AbsService {
     private AtomicLong errorCount = new AtomicLong(0);
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
     private ExecutorService executorService;
-    private ConcurrentLinkedQueue<List<JSONObject>> metaDataQueue = new ConcurrentLinkedQueue<>();
+    private BlockingQueue<JSONObject> metaDataQueue = new LinkedBlockingQueue<>();
     private LocalConsumerManager localConsumerManager;
 
     @PostConstruct
@@ -138,7 +138,7 @@ public class KfkConsumer extends AbsService {
                     .filter(v -> StringUtils.isNotBlank(v.getString(DataConfig.CONTENT_KEY)))
                     .collect(Collectors.toList());
 
-            metaDataQueue.add(data);
+            metaDataQueue.addAll(data);
             consumedCount.getAndAdd(data.size());
 
         } catch (Exception e) {
@@ -165,11 +165,14 @@ public class KfkConsumer extends AbsService {
 
             while (true) {
                 try {
+                    Thread.sleep(1000);
+
                     if (metaDataQueue.isEmpty()) {
                         Thread.sleep(1000);
                     }
 
-                    List<JSONObject> data = metaDataQueue.poll();
+                    List<JSONObject> data = new ArrayList<>();
+                    metaDataQueue.drainTo(data, 5000);
                     if (CollectionUtils.isEmpty(data)) {
                         continue;
                     }
@@ -219,7 +222,6 @@ public class KfkConsumer extends AbsService {
             }
         }
     }
-
 
     private void parallelHandleData(List<JSONObject> data) {
         Date nextDate = DateUtils.getDateDiff(new Date(), 1, DateUtils.DATE_TYPE.DAY);
