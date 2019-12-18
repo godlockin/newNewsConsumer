@@ -151,12 +151,12 @@ public class KfkConsumer extends AbsService {
 
         data.parallelStream()
                 .peek(x -> countAndLog(processedCount, "Operated {} data", y -> {}, x))
-                .filter(x -> !CollectionUtils.isEmpty(x))
                 .filter(x -> !RedisUtil.exists(0, (String) x.get(DataConfig.BUNDLE_KEY)))
                 .peek(x -> x.put(DataConfig.ENTRYTIME_KEY, DateUtils.getSHDate()))
                 .peek(x -> countAndLog(redisCachedCount, "Cached {} data into redis", NewsKfkHandleUtil.redisSinker(), x))
                 .peek(x -> x.remove(DataConfig.ENTRYTIME_KEY))
                 .map(NewsKfkHandleUtil.sourceMapper())
+                .filter(x -> !CollectionUtils.isEmpty(x))
                 .peek(x -> countAndLog(summaryCount, "Generated {} summary data", summaryGenerater(), x))
                 .filter(x -> StringUtils.isNotBlank((String) x.getOrDefault(DataConfig.PUBLISHDATE_KEY, "")))
                 .peek(x -> countAndLog(producedCount, "Published {} data", this.kfkOutputSinker(), x))
