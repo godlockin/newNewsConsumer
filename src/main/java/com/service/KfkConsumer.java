@@ -109,8 +109,7 @@ public class KfkConsumer extends AbsService {
                 .build();
 
         scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
-//        scheduledExecutorService.scheduleWithFixedDelay(this::loop, 1000, 3, TimeUnit.MILLISECONDS);
-        loop();
+        scheduledExecutorService.scheduleWithFixedDelay(this::loop, 1000, 3, TimeUnit.MILLISECONDS);
 
         localConsumerManager = new LocalConsumerManager();
         executorService.submit(localConsumerManager);
