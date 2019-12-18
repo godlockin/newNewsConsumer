@@ -74,7 +74,7 @@ public class BusinessConstants {
 
         public static final String NORMAL_ES_INDEX_KEY = "elasticsearch.normalIndex";
         public static final String EXTRA_ES_INDEX_KEY = "elasticsearch.extraIndex";
-        public static final String ISSUE_ES_INDEX_KEY = "elasticsearch.extraIndex";
+        public static final String ISSUE_ES_INDEX_KEY = "elasticsearch.issueIndex";
         public static final String DEFAULT_ISSUE_INDEX = "newton_original_doc_issue";
     }
 

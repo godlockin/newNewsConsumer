@@ -5,7 +5,10 @@ import com.alibaba.fastjson.JSONObject;
 import com.common.LocalConfig;
 import com.common.constants.BusinessConstants.*;
 import com.common.constants.KfkProperties;
-import com.common.utils.*;
+import com.common.utils.DateUtils;
+import com.common.utils.NewsKfkHandleUtil;
+import com.common.utils.RedisUtil;
+import com.common.utils.RestHttpClient;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -146,31 +149,29 @@ public class KfkConsumer extends AbsService {
         Date nextDate = DateUtils.getDateDiff(new Date(), 1, DateUtils.DATE_TYPE.DAY);
         Date lastThreeMonthDate = DateUtils.getDateDiff(new Date(), -3, DateUtils.DATE_TYPE.MONTH);
 
-        Integer nextDateInt = getDateInteger(nextDate, DateUtils.DATE_YYYYMMDD);
-        Integer lastThreeMonthDateInt = getDateInteger(lastThreeMonthDate, DateUtils.DATE_YYYYMM) * 100 + 1;
-
         data.parallelStream()
-                .map(NewsKfkHandleUtil.sourceMapper())
                 .peek(x -> countAndLog(processedCount, "Operated {} data", y -> {}, x))
                 .filter(x -> !CollectionUtils.isEmpty(x))
                 .filter(x -> !RedisUtil.exists(0, (String) x.get(DataConfig.BUNDLE_KEY)))
                 .peek(x -> x.put(DataConfig.ENTRYTIME_KEY, DateUtils.getSHDate()))
                 .peek(x -> countAndLog(redisCachedCount, "Cached {} data into redis", NewsKfkHandleUtil.redisSinker(), x))
                 .peek(x -> x.remove(DataConfig.ENTRYTIME_KEY))
+                .map(NewsKfkHandleUtil.sourceMapper())
                 .peek(x -> countAndLog(summaryCount, "Generated {} summary data", summaryGenerater(), x))
                 .filter(x -> StringUtils.isNotBlank((String) x.getOrDefault(DataConfig.PUBLISHDATE_KEY, "")))
                 .peek(x -> countAndLog(producedCount, "Published {} data", this.kfkOutputSinker(), x))
                 .forEach(x -> {
                     try {
                         String publishDate = (String) x.get(DataConfig.PUBLISHDATE_KEY);
-                        publishDate = publishDate.trim().replaceAll("-", "");
-                        publishDate = (8 < publishDate.length()) ? publishDate.substring(0, 8) : publishDate;
-                        Integer publishDateInt = Integer.parseInt(publishDate);
+                        publishDate = publishDate.trim();
+                        publishDate = 10 == publishDate.length() ? publishDate + " 00:00:00" : publishDate;
 
-                        if (publishDateInt <= nextDateInt) {
+                        Date pubDate = DateUtils.parseDate(publishDate);
+
+                        if (nextDate.after(pubDate)) {
                             countAndLog(normalDataCount, "Saved {} data into [" + NORMAL_INDEX + "]", esSinker(NORMAL_INDEX), x);
 
-                            if (publishDateInt >= lastThreeMonthDateInt) {
+                            if (lastThreeMonthDate.before(pubDate)) {
                                 countAndLog(extraDataCount, "Saved {} data into [" + EXTRA_INDEX + "]", esSinker(EXTRA_INDEX), x);
                             }
                         } else {
@@ -181,11 +182,6 @@ public class KfkConsumer extends AbsService {
                         log.error("Date parse failure:[{}], {}", x, e);
                     }
                 });
-    }
-
-    private Integer getDateInteger(Date date, String format) {
-        String dateStr = DateUtils.formatDate(date, format);
-        return Integer.parseInt(dateStr);
     }
 
     private void countAndLog(AtomicLong count, String logPattern, Consumer<Map> consumer, Map data) {
@@ -241,6 +237,7 @@ public class KfkConsumer extends AbsService {
             }
 
             ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
+            statement.put("processedCount", processedCount.longValue());
             statement.put("normalDataCount", normalDataCount.longValue());
             statement.put("extraDataCount", extraDataCount.longValue());
             statement.put("issueDataCount", issueDataCount.longValue());
