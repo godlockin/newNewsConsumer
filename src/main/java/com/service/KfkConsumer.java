@@ -10,6 +10,7 @@ import com.common.utils.NewsKfkHandleUtil;
 import com.common.utils.RedisUtil;
 import com.common.utils.RestHttpClient;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -26,6 +27,7 @@ import javax.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -51,6 +53,7 @@ public class KfkConsumer extends AbsService {
     private KafkaProducer<String, String> producer;
 
     private ScheduledExecutorService scheduledExecutorService;
+    private AtomicLong consumedCount = new AtomicLong(0);
     private AtomicLong processedCount = new AtomicLong(0);
     private AtomicLong redisCachedCount = new AtomicLong(0);
     private AtomicLong summaryCount = new AtomicLong(0);
@@ -61,6 +64,8 @@ public class KfkConsumer extends AbsService {
     private AtomicLong errorCount = new AtomicLong(0);
     private ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
     private ExecutorService executorService;
+    private ConcurrentLinkedQueue<List<JSONObject>> metaDataQueue = new ConcurrentLinkedQueue<>();
+    private LocalConsumerManager localConsumerManager;
 
     @PostConstruct
     void init() {
@@ -92,21 +97,25 @@ public class KfkConsumer extends AbsService {
 
         IMTERMEDIA_TOPIC = LocalConfig.get(KfkConfig.OUTPUT_TOPIC_KEY, String.class, "");
 
+        // init thread pool
+        int poolSize = Runtime.getRuntime().availableProcessors() * 2;
+        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(1024);
+        RejectedExecutionHandler policy = new ThreadPoolExecutor.DiscardPolicy();
+        executorService = new ThreadPoolExecutor(poolSize, poolSize, 10, TimeUnit.SECONDS, queue, policy);
+
         final ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat("Original-news-consumer-%d")
                 .setDaemon(false)
                 .build();
 
         scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
-        scheduledExecutorService.scheduleWithFixedDelay(this::loop, 1000, 3, TimeUnit.MILLISECONDS);
+//        scheduledExecutorService.scheduleWithFixedDelay(this::loop, 1000, 3, TimeUnit.MILLISECONDS);
+        loop();
+
+        localConsumerManager = new LocalConsumerManager();
+        executorService.submit(localConsumerManager);
 
         Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(statementRunnable(), 0, 5, TimeUnit.SECONDS);
-
-        // init thread pool
-        int poolSize = Runtime.getRuntime().availableProcessors() * 2;
-        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(1024);
-        RejectedExecutionHandler policy = new ThreadPoolExecutor.DiscardPolicy();
-        executorService = new ThreadPoolExecutor(poolSize, poolSize, 10, TimeUnit.SECONDS, queue, policy);
     }
 
     @Override
@@ -130,11 +139,8 @@ public class KfkConsumer extends AbsService {
                     .filter(v -> StringUtils.isNotBlank(v.getString(DataConfig.CONTENT_KEY)))
                     .collect(Collectors.toList());
 
-            if (TasksConfig.BATCH_JOB_KEY.equalsIgnoreCase(CONSUMER_TYPE_FLAG)) {
-                executorService.submit(() -> parallelHandleData(data));
-            } else {
-                parallelHandleData(data);
-            }
+            metaDataQueue.add(data);
+            consumedCount.getAndAdd(data.size());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -144,6 +150,77 @@ public class KfkConsumer extends AbsService {
             consumer.commitSync();
         }
     }
+
+    @Data
+    private class LocalConsumerManager extends Thread {
+
+        private Integer dataCount;
+        private AtomicInteger slaverNum;
+        private AtomicInteger slaverCount;
+        private ExecutorService executor;
+
+        @Override
+        public void run() {
+            log.info("Start to manage consumers");
+            init();
+
+            while (true) {
+                try {
+                    if (metaDataQueue.isEmpty()) {
+                        Thread.sleep(1000);
+                    }
+
+                    List<JSONObject> data = metaDataQueue.poll();
+                    if (CollectionUtils.isEmpty(data)) {
+                        continue;
+                    }
+
+                    while (1024 < slaverCount.intValue()) {
+                        Thread.sleep(1000);
+                    }
+
+                    executor.submit(new LocalConsumer(slaverNum.incrementAndGet(), data));
+                    slaverCount.incrementAndGet();
+                    dataCount += data.size();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.error("Error happened during we manage local consumer, {}", e);
+                }
+            }
+        }
+
+        private void init() {
+            dataCount = 0;
+            slaverNum = new AtomicInteger(0);
+            slaverCount = new AtomicInteger(0);
+            executor = new ThreadPoolExecutor(1024, 1024, 10, TimeUnit.SECONDS,
+                    new ArrayBlockingQueue<>(Runtime.getRuntime().availableProcessors() * 2),
+                    new ThreadPoolExecutor.AbortPolicy());
+        }
+
+        private class LocalConsumer extends Thread {
+            private Integer slaverNum;
+            private List<JSONObject> data;
+            LocalConsumer(Integer slaverNum, List<JSONObject> data) {
+                this.slaverNum = slaverNum;
+                this.data = data;
+            }
+
+            @Override
+            public void run() {
+                try {
+                    log.info("Slaver {} handle {} data", slaverNum, data.size());
+                    parallelHandleData(data);
+                    log.info("Slaver {} finished {} data", slaverNum, data.size());
+                    slaverCount.decrementAndGet();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.error("Error happened during we local consume data, {}", e);
+                }
+            }
+        }
+    }
+
 
     private void parallelHandleData(List<JSONObject> data) {
         Date nextDate = DateUtils.getDateDiff(new Date(), 1, DateUtils.DATE_TYPE.DAY);
@@ -184,13 +261,6 @@ public class KfkConsumer extends AbsService {
                 });
     }
 
-    private void countAndLog(AtomicLong count, String logPattern, Consumer<Map> consumer, Map data) {
-        consumer.accept(data);
-        if (0 == count.incrementAndGet() % 1000) {
-            log.info(logPattern, normalDataCount.longValue());
-        }
-    }
-
     private Consumer<Map> summaryGenerater() {
         return value -> {
             String content = (String) value.get(DataConfig.CONTENT_KEY);
@@ -229,6 +299,13 @@ public class KfkConsumer extends AbsService {
 
     private Consumer<Map> esSinker(String index) { return value -> esService.bulkInsert(index, DataConfig.BUNDLE_KEY, value); }
 
+    private void countAndLog(AtomicLong count, String logPattern, Consumer<Map> consumer, Map data) {
+        consumer.accept(data);
+        if (0 == count.incrementAndGet() % 1000) {
+            log.info(logPattern, normalDataCount.longValue());
+        }
+    }
+
     private Runnable statementRunnable() {
         return () -> {
 
@@ -236,7 +313,8 @@ public class KfkConsumer extends AbsService {
                 return;
             }
 
-            ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
+            Map<String, Object> statement = new HashMap<>();
+            statement.put("consumedCount", consumedCount.longValue());
             statement.put("processedCount", processedCount.longValue());
             statement.put("normalDataCount", normalDataCount.longValue());
             statement.put("extraDataCount", extraDataCount.longValue());
@@ -252,6 +330,18 @@ public class KfkConsumer extends AbsService {
             statement.put("poolSize", threadPoolExecutor.getPoolSize());
             statement.put("taskCount", threadPoolExecutor.getTaskCount());
             statement.put("queueSize", threadPoolExecutor.getQueue().size());
+
+            if (null == localConsumerManager) {
+                localConsumerManager = new LocalConsumerManager();
+                executorService.submit(localConsumerManager);
+            }
+
+            Map<String, Object> localConsumerStatement = new HashMap<>();
+            localConsumerStatement.put("metaQueueSize", metaDataQueue.size());
+            localConsumerStatement.put("slaverNum", localConsumerManager.getSlaverNum().intValue());
+            localConsumerStatement.put("handlingDataSize", localConsumerManager.getDataCount());
+            localConsumerStatement.put("workingSlaveNum", localConsumerManager.getSlaverCount().intValue());
+            statement.put("localConsumer", localConsumerStatement);
 
             this.statement = new ConcurrentHashMap<>(statement);
         };
