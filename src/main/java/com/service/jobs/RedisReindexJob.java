@@ -52,7 +52,7 @@ public class RedisReindexJob extends ESRelatedJobs {
                 count += result.size();
 
                 log.info("Dump {} data for {} in total", result.size(), count);
-                result.parallelStream()
+                result.stream()
                         .filter(x -> !(x.contains(":") || x.contains("_")))
                         .forEach(x -> {
                             try {
@@ -71,7 +71,6 @@ public class RedisReindexJob extends ESRelatedJobs {
                                 errorList.add(x);
                             }
                         });
-
 
                 first = false;
                 cursor = stringScanResult.getStringCursor();
