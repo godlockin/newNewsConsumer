@@ -67,7 +67,7 @@ public class KfkConsumer extends AbsService {
     private BlockingQueue<JSONObject> metaDataQueue = new LinkedBlockingQueue<>();
     private LocalConsumerManager localConsumerManager;
 
-    @PostConstruct
+//    @PostConstruct
     void init() {
 
         CONSUMER_TYPE_FLAG = LocalConfig.get(SysConfig.ENV_FLG_KEY, String.class, TasksConfig.NORMAL_JOB_KEY);

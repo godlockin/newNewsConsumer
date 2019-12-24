@@ -34,15 +34,6 @@ public class ReindexJob extends ESRelatedJobs {
     public void scrollJob(Map param) {
         log.info("Start to do [{}] job for param:[{}]", jobName(), param);
 
-//        FailureQueue.clean();
-        Map<String, Integer> retryRecords = RetryQueue.get();
-        Integer thisRetry = 0;
-        if (!CollectionUtils.isEmpty(retryRecords)) {
-            thisRetry = new ArrayList<>(retryRecords.values()).get(0);
-
-            log.warn("Retry for {} time with {} records", thisRetry, retryRecords.size());
-        }
-
         fromIndex = DataUtils.getNotNullValue(param, "fromIndex", String.class, "");
         toIndex = DataUtils.getNotNullValue(param, "toIndex", String.class, "");
 
@@ -78,19 +69,6 @@ public class ReindexJob extends ESRelatedJobs {
 
         if (0 < count) {
             log.info("Reindex {} data from {} to {}", count, fromIndex, toIndex);
-        }
-
-        retryRecords = RetryQueue.get();
-        if (!CollectionUtils.isEmpty(retryRecords)) {
-            Integer t = thisRetry;
-            List<String> tmp = retryRecords.entrySet().stream().filter(x -> t.equals(x.getValue())).map(Map.Entry::getKey).collect(Collectors.toList());
-            tmp.forEach(RetryQueue::remove);
-
-            retryRecords = RetryQueue.get();
-            if (!CollectionUtils.isEmpty(retryRecords)) {
-                param.put("ids", new ArrayList<>(retryRecords.keySet()));
-                scrollJob(param);
-            }
         }
     }
 }

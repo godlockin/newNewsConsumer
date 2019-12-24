@@ -5,7 +5,7 @@ spring:
   application:
     name: newNewsConsumer
   profiles:
-    active: ${ACTIVE_KEY}
+    active: job
 
 logging:
   config: classpath:logback-spring.xml

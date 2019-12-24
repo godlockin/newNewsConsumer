@@ -9,13 +9,11 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.Protocol;
+import redis.clients.jedis.*;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import javax.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,6 +56,29 @@ public class RedisUtil {
 		}
 
 		return result;
+	}
+
+	/**
+	 * scan a db and return the keys matchs the pattern
+	 * @param db
+	 * @param cursor
+	 * @param scanParams
+	 * @return
+	 */
+	public static ScanResult<String> scan(Integer db, String cursor, ScanParams scanParams) {
+		JedisPool pool = RedisCache.getPool(db);
+		if (null == pool || StringUtils.isBlank(cursor)) {
+			return new ScanResult(ScanParams.SCAN_POINTER_START, new ArrayList());
+		}
+
+		try (Jedis jedis = pool.getResource()) {
+			return jedis.scan(cursor, scanParams);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error("Error happened when we scan with param:[{}] cursor:[{}] of db:[{}]"
+					, scanParams, cursor, db);
+			return new ScanResult(ScanParams.SCAN_POINTER_START, new ArrayList());
+		}
 	}
 
 	public static Boolean exists(Integer db, String key) {
@@ -181,7 +202,7 @@ public class RedisUtil {
 		RedisCache.setPool(0, buildJedisPool(0, config));
 	}
 
-	private static JedisPool buildJedisPool(Integer database, Map config) {
+	public static JedisPool buildJedisPool(Integer database, Map config) {
 
 		String host = DataUtils.getNotNullValue(config, RedisConfig.HOST_KEY, String.class, "");
 		Integer port = DataUtils.getNotNullValue(config, RedisConfig.PORT_KEY, Integer.class, Protocol.DEFAULT_PORT);
@@ -216,7 +237,7 @@ public class RedisUtil {
 		// 连接池的最大数据库连接数
 		jedisPoolConfig.setMaxTotal(1000);
 		// 最大建立连接等待时间
-		jedisPoolConfig.setMaxWaitMillis(10);
+		jedisPoolConfig.setMaxWaitMillis(1000);
 		// 逐出连接的最小空闲时间 默认1800000毫秒(30分钟)
 		jedisPoolConfig.setMinEvictableIdleTimeMillis(10000);
 		// 每次逐出检查时 逐出的最大数目 如果为负数就是 : 1/abs(n), 默认3

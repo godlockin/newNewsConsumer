@@ -58,6 +58,7 @@ public class ESRelatedJobs {
             this.param = param;
             return this;
         }
+
         public ESRelatedJobs build() {
 
             ESRelatedJobs job;
@@ -73,6 +74,9 @@ public class ESRelatedJobs {
                     break;
                 case "_reindexJob":
                     job = new ReindexJob();
+                    break;
+                case "_redisReindexJob":
+                    job = new RedisReindexJob();
                     break;
                 default:
                     job = new ESRelatedJobs();
