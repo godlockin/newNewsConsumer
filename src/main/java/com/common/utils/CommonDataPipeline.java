@@ -15,7 +15,15 @@ import java.util.function.Function;
 
 @Slf4j
 @Component
-public class NewsKfkHandleUtil {
+public class CommonDataPipeline {
+
+    public static Consumer<Map> bundleKeyMapper() {
+        return value -> {
+            String sourceUrl = (String) value.getOrDefault("url", "");
+            String bundleKey = (String) value.getOrDefault("bundle_key", GuidService.getMd5(sourceUrl).toLowerCase());
+            value.put(DataConfig.BUNDLE_KEY, bundleKey);
+        };
+    }
 
     public static Function<JSONObject, Map> sourceMapper() {
         return value -> {
@@ -34,14 +42,7 @@ public class NewsKfkHandleUtil {
                 }
 
                 content = new String(content.getBytes(StandardCharsets.UTF_8));
-
-                content = content
-                        .replaceAll("<[.[^>]]*>", "")
-                        .replaceAll("[\\s\\p{Zs}]+", "")
-                        .replaceAll("\\s*|\t|\r|\n", "")
-                        .replaceAll("\n|\r\n|\\n|\\t", "")
-                        .replaceAll("&nbsp", "")
-                        .trim();
+                content = DataUtils.cleanHttpString(content);
 
                 if (StringUtils.isBlank(content)) {
                     log.error("No content for:[{}]", value);
@@ -79,7 +80,6 @@ public class NewsKfkHandleUtil {
             return result;
         };
     }
-
 
     public static Consumer<Map> redisSinker() {
         return (Map value) -> {

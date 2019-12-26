@@ -11,12 +11,13 @@ kafka:
 
 elasticsearch:
   address: 10.0.9.80:9200,10.0.9.81:9200
-  normalIndex: newton_original_doc_yearly
-  extraIndex: newton_original_doc_monthly
-  issueIndex: newton_original_doc_issue
   bulk:
     flush: 5000
     size: 10
+  news:
+    daily:
+      index:
+      address:
 
 langid:
   url: http://10.0.13.204:8080/langId

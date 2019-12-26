@@ -23,13 +23,10 @@ import java.util.Map;
 @DependsOn("localConfig")
 public class RedisUtil {
 
-	@Value("${spring.redis.host}")
 	private String host;
 
-	@Value("${spring.redis.port}")
 	private Integer port;
 
-	@Value("${spring.redis.password}")
 	private String password;
 
 	private static JedisPoolConfig jedisPoolConfig;

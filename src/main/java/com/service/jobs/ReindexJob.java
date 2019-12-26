@@ -49,7 +49,7 @@ public class ReindexJob extends ESRelatedJobs {
         int count = 0;
 
         try {
-            Map result = esClient.scroll(queryParam);
+            Map result = esClient.complexSearch(queryParam);
             List dataList = (List) result.getOrDefault("data", new ArrayList<>());
             String scrollId = (String) result.getOrDefault("scrollId", "");
             queryParam.put("scrollId", scrollId);
@@ -59,7 +59,7 @@ public class ReindexJob extends ESRelatedJobs {
 
                 functionLogic().accept(dataList);
 
-                result = esClient.scroll(queryParam);
+                result = esClient.complexSearch(queryParam);
                 dataList = (List) result.getOrDefault("data", new ArrayList<>());
             }
         } catch (Exception e) {

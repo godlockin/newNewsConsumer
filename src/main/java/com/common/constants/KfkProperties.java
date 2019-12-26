@@ -26,7 +26,7 @@ public class KfkProperties {
 //        properties.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 1000 + 7);
         properties.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 60 * 1000);
         properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 5000);
+        properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 100);
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());

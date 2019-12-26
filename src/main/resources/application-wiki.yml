@@ -1,28 +1,22 @@
 server:
   port: 8082
 
+isTest: false
+
 kafka:
   input:
-    topic: spider-formated
-    appId: dump
+    topic: baidu-baike
+    appId: wiki
     hosts: 10.0.9.62:9092,10.0.9.63:9092,10.0.9.67:9092
   output:
     topic: newton-article
 
 elasticsearch:
   address: 10.0.9.80:9200,10.0.9.81:9200
-  normalIndex: newton_original_doc_yearly
-  extraIndex: newton_original_doc_monthly
-  issueIndex: newton_original_doc_issue
   bulk:
     flush: 5000
     size: 10
-
-langid:
-  url: http://10.0.13.204:8080/langId
-
-summary:
-  url: http://10.0.3.64:80/text-rank
+  index: newton_wiki_20191226
 
 spring:
   redis:

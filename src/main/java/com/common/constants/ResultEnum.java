@@ -2,12 +2,14 @@ package com.common.constants;
 
 public enum ResultEnum implements BaseEnum {
 
-    SUCCESS(0, "成功")
-    ,FAILURE(1, "失败")
-    ,PARAMETER_CHECK(11, "参数校验失败")
-
-    ,ES_CLIENT_INIT(120, "ES 初始化失败")
-    ,ES_CLIENT_CLOSE(121, "ES 连接关闭")
+    SUCCESS(1, "成功")
+    ,FAILURE(0, "失败")
+    ,ES_CLIENT_INIT(11, "ES服务链接失败")
+    ,ES_CLIENT_BULK_COMMIT(12, "ES Bulk 提交失败")
+    ,ES_CLIENT_CLOSE(13, "ES Client 关闭失败")
+    ,ES_QUERY(14, "ES 检索失败")
+    ,PARAMETER_CHECK(21, "参数校验失败")
+    ,REMOTE_QUERY(31, "远程请求失败")
     ;
 
     private Integer code;
