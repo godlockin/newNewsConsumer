@@ -139,12 +139,16 @@ public class KfkConsumer {
                 .filter(x -> !RedisUtil.exists(0, (String) x.get(BusinessConstants.DataConfig.BUNDLE_KEY)))
                 .map(CommonDataPipeline.sourceMapper())
                 .filter(x -> !CollectionUtils.isEmpty(x))
+                .peek(this::dataCleaner)
                 .peek(x -> x.put(BusinessConstants.DataConfig.ENTRYTIME_KEY, DateUtils.getSHDate()))
                 .peek(x -> countAndLog(redisCachedCount, "Cached {} data into redis", CommonDataPipeline.redisSinker(), x))
                 .peek(x -> x.remove(BusinessConstants.DataConfig.ENTRYTIME_KEY))
                 .peek(x -> countAndLog(esSinkDataCount, "Submitted ES {} data", this.esSinker(TRGT_INDEX), x))
+//                .forEach(x -> log.debug(x.toString()));
                 .forEach(x -> countAndLog(producedCount, "Published {} data", this.kfkOutputSinker(), x));
     }
+
+    protected void dataCleaner(Map value) { }
 
     protected Consumer<Map> kfkOutputSinker() { return value -> producer.send(new ProducerRecord(IMTERMEDIA_TOPIC, value.get(BusinessConstants.DataConfig.BUNDLE_KEY), JSON.toJSONString(value))); }
 

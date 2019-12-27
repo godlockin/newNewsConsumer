@@ -236,11 +236,11 @@ public class RedisUtil {
 		// 最大建立连接等待时间
 		jedisPoolConfig.setMaxWaitMillis(1000);
 		// 逐出连接的最小空闲时间 默认1800000毫秒(30分钟)
-		jedisPoolConfig.setMinEvictableIdleTimeMillis(10000);
+		jedisPoolConfig.setMinEvictableIdleTimeMillis(1800000);
 		// 每次逐出检查时 逐出的最大数目 如果为负数就是 : 1/abs(n), 默认3
 		jedisPoolConfig.setNumTestsPerEvictionRun(3);
 		// 逐出扫描的时间间隔(毫秒) 如果为负数,则不运行逐出线程, 默认-1
-		jedisPoolConfig.setTimeBetweenEvictionRunsMillis(3);
+		jedisPoolConfig.setTimeBetweenEvictionRunsMillis(30);
 		// 是否在从池中取出连接前进行检验,如果检验失败,则从池中去除连接并尝试取出另一个
 		jedisPoolConfig.setTestOnBorrow(true);
 		// 在空闲时检查有效性, 默认false

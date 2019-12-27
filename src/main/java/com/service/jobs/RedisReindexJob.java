@@ -28,7 +28,7 @@ public class RedisReindexJob extends ESRelatedJobs {
         log.info("Start to do [{}] job for param:[{}]", jobName(), param);
 
         String scanPattern = DataUtils.getNotNullValue(param, "scanPattern", String.class, "*");
-        Integer keysMaxCount = DataUtils.getNotNullValue(param, "keysMaxCount", Integer.class, 100);
+        Integer keysMaxCount = DataUtils.getNotNullValue(param, "keysMaxCount", Integer.class, 10000);
         List<String> aliveKeys = DataUtils.getNotNullValue(param, "aliveKeys", List.class, new ArrayList<>());
         String trgtKeysPattern = DataUtils.getNotNullValue(param, "trgtKeysPattern", String.class, "%s");
 
@@ -67,7 +67,7 @@ public class RedisReindexJob extends ESRelatedJobs {
                                 destJ.hmset(key, output);
                             } catch (Exception e) {
                                 e.printStackTrace();
-                                log.error("Error happened during we do reindex for [{}]", x);
+                                log.error("Error happened during we do reindex for [{}], {}", x, e);
                                 errorList.add(x);
                             }
                         });

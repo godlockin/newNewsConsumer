@@ -2,7 +2,7 @@ package com.service;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.common.constants.BusinessConstants;
+import com.common.constants.BusinessConstants.DataConfig;
 import com.common.constants.BusinessConstants.TasksConfig;
 import com.common.utils.CommonDataPipeline;
 import com.common.utils.DateUtils;
@@ -17,6 +17,8 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -55,7 +57,7 @@ public class WikiKfkConsumer extends KfkConsumer {
                             return new JSONObject();
                         }
                     })
-                    .filter(v -> StringUtils.isNotBlank(v.getString(BusinessConstants.DataConfig.CONTENT_KEY)))
+                    .filter(v -> StringUtils.isNotBlank(v.getString(DataConfig.CONTENT_KEY)))
                     .collect(Collectors.toList());
 
             if (CollectionUtils.isEmpty(data)) {
@@ -78,26 +80,33 @@ public class WikiKfkConsumer extends KfkConsumer {
 
         data.parallelStream()
                 .peek(x -> countAndLog(processedCount, "Operated {} data", CommonDataPipeline.bundleKeyMapper(), x))
-                .filter(x -> StringUtils.isNotBlank((String) x.get(BusinessConstants.DataConfig.BUNDLE_KEY)))
-                .filter(x -> !RedisUtil.exists(0, (String) x.get(BusinessConstants.DataConfig.BUNDLE_KEY)))
+                .filter(x -> StringUtils.isNotBlank((String) x.get(DataConfig.BUNDLE_KEY)))
+                .filter(x -> !RedisUtil.exists(0, (String) x.get(DataConfig.BUNDLE_KEY)))
                 .map(CommonDataPipeline.sourceMapper())
                 .filter(x -> !CollectionUtils.isEmpty(x))
-                .peek(x -> {
-                    String title = (String) x.get(BusinessConstants.DataConfig.TITLE_KEY);
-                    String source = (String) x.get(BusinessConstants.DataConfig.SOURCENAME_KEY);
-                    String tag = "_" + source;
-                    if (title.length() < tag.length()) {
-                        return;
-                    }
-
-                    if (title.contains(tag)) {
-                        x.put(BusinessConstants.DataConfig.TITLE_KEY, title.replace(tag, "").trim());
-                    }
-                })
-                .peek(x -> x.put(BusinessConstants.DataConfig.ENTRYTIME_KEY, DateUtils.getSHDate()))
+                .peek(this::dataCleaner)
+                .peek(x -> x.put(DataConfig.ENTRYTIME_KEY, DateUtils.getSHDate()))
                 .peek(x -> countAndLog(redisCachedCount, "Cached {} data into redis", CommonDataPipeline.redisSinker(), x))
-                .peek(x -> x.remove(BusinessConstants.DataConfig.ENTRYTIME_KEY))
+                .peek(x -> x.remove(DataConfig.ENTRYTIME_KEY))
                 .peek(x -> countAndLog(esSinkDataCount, "Submitted ES {} data", this.esSinker(TRGT_INDEX), x))
+//                .forEach(x -> log.debug(x.toString()));
                 .forEach(x -> countAndLog(producedCount, "Published {} data", this.kfkOutputSinker(), x));
+    }
+
+    @Override
+    protected void dataCleaner(Map value) {
+
+        value.remove(DataConfig.PUBLISHDATE_KEY);
+        value.remove(DataConfig.SEPARATEDATE_KEY);
+
+        String content = (String) value.get(DataConfig.CONTENT_KEY);
+        value.put(DataConfig.SUMMARY_KEY, content.length() > 200 ? content.substring(0, 200) : content);
+
+        String title = (String) value.get(DataConfig.TITLE_KEY);
+        String source = (String) value.get(DataConfig.SOURCENAME_KEY);
+        String tag = "_" + source;
+        if (title.length() > tag.length() && title.contains(tag)) {
+            value.put(DataConfig.TITLE_KEY, title.replace(tag, "").trim());
+        }
     }
 }
