@@ -16,7 +16,7 @@ elasticsearch:
   bulk:
     flush: 5000
     size: 10
-  index: newton_wiki_20191226
+  index: newton_wiki
 
 spring:
   redis:

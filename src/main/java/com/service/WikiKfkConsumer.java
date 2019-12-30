@@ -7,7 +7,6 @@ import com.common.constants.BusinessConstants.TasksConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -27,6 +26,13 @@ public class WikiKfkConsumer extends KfkConsumer {
     protected void init() {
 
         super.init();
+        List<String> defaultKeys = DataConfig.ES_ALIVE_KEYS;
+        List<String> tmp = new ArrayList<>();
+        defaultKeys.stream()
+                .filter(x -> !(DataConfig.PUBLISHDATE_KEY.equalsIgnoreCase(x) ||
+                        DataConfig.SEPARATEDATE_KEY.equalsIgnoreCase(x)))
+                .forEach(tmp::add);
+        aliveKeys = tmp;
     }
 
     @Override
@@ -74,20 +80,6 @@ public class WikiKfkConsumer extends KfkConsumer {
 
     @Override
     protected List<String> getESAliveKeys() {
-        if (CollectionUtils.isEmpty(aliveKeys)) {
-            synchronized (QuestionAnswerKfkConsumer.class) {
-                if (CollectionUtils.isEmpty(aliveKeys)) {
-                    List<String> defaultKeys = DataConfig.ES_ALIVE_KEYS;
-                    List<String> tmp = new ArrayList<>();
-                    defaultKeys.stream()
-                            .filter(x -> !(DataConfig.PUBLISHDATE_KEY.equalsIgnoreCase(x) ||
-                                    DataConfig.SEPARATEDATE_KEY.equalsIgnoreCase(x)))
-                            .forEach(tmp::add);
-                    aliveKeys = tmp;
-                }
-            }
-        }
-
         return aliveKeys;
     }
 }
