@@ -1,23 +1,22 @@
 server:
-  port: 8081
+  port: 8084
+
+isTest: false
 
 kafka:
   input:
-    topic: spider-formated
-    appId: monthly
+    topic: spider-formated-answer
+    appId: blog
     hosts: 10.0.9.62:9092,10.0.9.63:9092,10.0.9.67:9092
   output:
     topic: newton-article
 
 elasticsearch:
-  address: 10.0.9.80:9200,10.0.9.81:9200
+  address: 10.0.15.27:9200,10.0.15.28:9200
   bulk:
     flush: 5000
     size: 10
-  news:
-    daily:
-      index:
-      address:
+  index: newton_blog_20191228
 
 remote-analysis:
   url: http://10.0.1.153:80/analyze

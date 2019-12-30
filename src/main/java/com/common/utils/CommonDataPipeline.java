@@ -1,5 +1,6 @@
 package com.common.utils;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.common.constants.BusinessConstants.DataConfig;
 import lombok.extern.slf4j.Slf4j;
@@ -7,9 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -71,6 +70,7 @@ public class CommonDataPipeline {
 
                 tmp.put(DataConfig.SEPARATEDATE_KEY, Optional.ofNullable(publishDate).orElse(timestamp));
 
+                value.entrySet().stream().filter(e -> !DataConfig.MAPPINGFIELDS.contains(e.getKey())).forEach(e -> tmp.put(e.getKey(), e.getValue()));
                 result = new HashMap<>(tmp);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -86,7 +86,7 @@ public class CommonDataPipeline {
             String bundleKey = (String) value.get(DataConfig.BUNDLE_KEY);
             Map<String, String> tmp = new HashMap<>();
             value.entrySet().parallelStream()
-                    .filter(e -> !DataConfig.CONTENT_KEY.equalsIgnoreCase((String) ((Map.Entry) e).getKey()))
+                    .filter(e -> DataConfig.REDIS_ALIVE_KEYS.contains(((Map.Entry) e).getKey()))
                     .forEach(e -> {
                         Map.Entry entry = (Map.Entry) e;
                         tmp.put(entry.getKey().toString(), Optional.ofNullable(entry.getValue()).orElse("").toString());
@@ -95,4 +95,17 @@ public class CommonDataPipeline {
         };
     }
 
+    public static Consumer<Map> redisTestSinker() {
+        return (Map value) -> {
+            String bundleKey = (String) value.get(DataConfig.BUNDLE_KEY);
+            Map<String, String> tmp = new HashMap<>();
+            value.entrySet().parallelStream()
+                    .filter(e -> DataConfig.REDIS_ALIVE_KEYS.contains(((Map.Entry) e).getKey()))
+                    .forEach(e -> {
+                        Map.Entry entry = (Map.Entry) e;
+                        tmp.put(entry.getKey().toString(), Optional.ofNullable(entry.getValue()).orElse("").toString());
+                    });
+            log.info("redisSink:[{}] -> [{}]", JSON.toJSONString(tmp), bundleKey);
+        };
+    }
 }

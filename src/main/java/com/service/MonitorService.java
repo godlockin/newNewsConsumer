@@ -33,6 +33,8 @@ public class MonitorService {
     private NewsKfkConsumer newsKfkConsumer;
     @Autowired
     private WikiKfkConsumer wikiKfkConsumer;
+    @Autowired
+    private QuestionAnswerKfkConsumer qaKfkConsumer;
 
     public Map statement() {
 
@@ -79,6 +81,7 @@ public class MonitorService {
             // consumer statement
             sysStatement.put("newsKfkConsumer", newsKfkConsumer.statement());
             sysStatement.put("wikiKfkConsumer", wikiKfkConsumer.statement());
+            sysStatement.put("qaKfkConsumer", qaKfkConsumer.statement());
 
             sysStatement.put("localConfig", LocalConfig.get());
         }, 0, 5, TimeUnit.SECONDS);

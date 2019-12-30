@@ -28,15 +28,51 @@ public class BusinessConstants {
         public static final String BUNDLE_KEY = "bundleKey";
         public static final String CONTENT_KEY = "content";
         public static final String SUMMARY_KEY = "summary";
+        public static final String EXCERPT_KEY = "excerpt";
+        public static final String SUMMARYSEG_KEY = "summarySeg";
         public static final String OSSURL_KEY = "ossUrl";
         public static final String DOMAIN_KEY = "domain";
         public static final String SOURCENAME_KEY = "sourceName";
         public static final String TITLE_KEY = "title";
+        public static final String TITLESEG_KEY = "titleSeg";
         public static final String SOURCEURL_KEY = "sourceUrl";
         public static final String PUBLISHDATE_KEY = "publishDate";
         public static final String SEPARATEDATE_KEY = "separateDate";
         public static final String ENTRYTIME_KEY = "entryTime";
 
+        public static final String LIKE_KEY = "like";
+
+        public static final List<String> MAPPINGFIELDS = Arrays.asList(
+                "pub_date"
+                ,"title"
+                ,"url"
+                ,"content"
+                ,"bundle_key"
+                ,"source"
+                ,"domain"
+        );
+
+        public static final List<String> ES_ALIVE_KEYS = Arrays.asList(
+                "sourceUrl"
+                ,"bundleKey"
+                ,"ossUrl"
+                ,"publishDate"
+                ,"separateDate"
+                ,"sourceName"
+                ,"domain"
+                ,"title"
+        );
+
+        public static final List<String> REDIS_ALIVE_KEYS = Arrays.asList(
+                "sourceUrl"
+                ,"bundleKey"
+                ,"entryTime"
+                ,"ossUrl"
+                ,"publishDate"
+                ,"sourceName"
+                ,"domain"
+                ,"title"
+        );
     }
 
     public static class KfkConfig {
@@ -184,6 +220,8 @@ public class BusinessConstants {
         private TasksConfig() {}
 
         public static final String WIKI_JOB_KEY = "wiki";
+        public static final String QUESTION_ANSWER_JOB_KEY = "qa";
+        public static final String BLOG_JOB_KEY = "blog";
         public static final String DAILY_NEWS_JOB_KEY = "dailynews";
         public static final String TRGT_ES_INDEX_KEY = "elasticsearch.index";
         public static final String TRGT_ES_ADDRESS_KEY = "elasticsearch.address";
@@ -192,6 +230,7 @@ public class BusinessConstants {
         public static final String NEWS_EXTRA_ES_INDEX_KEY = "elasticsearch.news.extraIndex";
         public static final String NEWS_ISSUE_ES_INDEX_KEY = "elasticsearch.news.issueIndex";
         public static final String DEFAULT_ISSUE_INDEX = "newton_original_doc_issue";
+        public static final String REMOTE_ANALYSIS_URL_KEY = "remote-analysis.url";
     }
 
     public static class LandIdConfig {

@@ -11,6 +11,9 @@ import org.yaml.snakeyaml.Yaml;
 
 import javax.annotation.PostConstruct;
 import java.io.InputStream;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -71,7 +74,22 @@ public class LocalConfig {
             });
         }
 
+        initIpAddr();
+
         log.info("Init {} config done", cache.size());
+    }
+
+    private static void initIpAddr() {
+        InetAddress localHost = null;
+        try {
+            localHost = Inet4Address.getLocalHost();
+        } catch (UnknownHostException e) {
+            log.error(e.getMessage(),e);
+        }
+        String ip = localHost.getHostAddress();
+        String hostName = localHost.getHostName();
+        cache.put("local_ip", ip);
+        cache.put("local_host_name", hostName);
     }
 
     private static Map<String, Object> loadYamlConfig(String fileName) {
