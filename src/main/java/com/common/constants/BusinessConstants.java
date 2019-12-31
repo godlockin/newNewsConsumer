@@ -44,12 +44,10 @@ public class BusinessConstants {
 
         public static final List<String> MAPPINGFIELDS = Arrays.asList(
                 "pub_date"
-                ,"title"
                 ,"url"
                 ,"content"
                 ,"bundle_key"
                 ,"source"
-                ,"domain"
         );
 
         public static final List<String> ES_ALIVE_KEYS = Arrays.asList(
@@ -61,6 +59,11 @@ public class BusinessConstants {
                 ,"sourceName"
                 ,"domain"
                 ,"title"
+                ,"summary"
+                ,"content"
+                ,"titleSeg"
+                ,"summarySeg"
+                ,"contentSeg"
         );
 
         public static final List<String> REDIS_ALIVE_KEYS = Arrays.asList(

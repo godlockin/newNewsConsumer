@@ -7,7 +7,6 @@ spring:
   profiles:
     active: jobs
 
-
 logging:
   config: classpath:logback-spring.xml
   path: ./logs/newNewsConsumer/${spring.profiles.active}/

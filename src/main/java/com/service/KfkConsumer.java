@@ -151,31 +151,37 @@ public class KfkConsumer {
 
         data.stream()
                 .peek(x -> countAndLog(processedCount, "Operated {} data", CommonDataPipeline.bundleKeyMapper(), x))
+                .peek(x -> debugConsumer(false, "process data"))
                 .filter(x -> {
                     if (!StringUtils.isNotBlank((String) x.get(DataConfig.BUNDLE_KEY))) {
                         log.error("No bundleKey:[{}]", x.toJSONString());
                     }
-
                     return StringUtils.isNotBlank((String) x.get(DataConfig.BUNDLE_KEY));
                 })
                 .map(CommonDataPipeline.sourceMapper())
+                .peek(x -> debugConsumer(false, "mapping data"))
                 .filter(x -> {
                     if (CollectionUtils.isEmpty(x)) {
                         log.error("Mapped empty");
                     }
-
                     return !CollectionUtils.isEmpty(x);
                 })
                 .peek(x -> countAndLog(functionalMappingCount, "Functional mapping {} data ", functionalMapper(), x))
+                .peek(x -> debugConsumer(false, "functional mapping data"))
                 .peek(x -> countAndLog(summaryCount, "Generated {} summary", summaryGenerator(), x))
+                .peek(x -> debugConsumer(false, "generate summary"))
                 .peek(x -> countAndLog(fulfillCount, "Fulfilled {} data", esDataFulFiller(), x))
+                .peek(x -> debugConsumer(false, "fulfill other data"))
                 .peek(x -> countAndLog(esDataCleanedCount, "Cleaned {} es data ", esDataCleaner(), x))
+                .peek(x -> debugConsumer(false, "clean data to save into es"))
                 .peek(x -> countAndLog(esSinkDataCount, "Submitted ES {} data", esTestSinker(), x))
                 .peek(x -> countAndLog(downstreamDataCleanedCount, "Cleaned {} downstream message ", downstreamDataCleaner(), x))
+                .peek(x -> debugConsumer(false, "clean data for downstream"))
                 .peek(x -> countAndLog(downstreamDataFulfilledCount, "Fulfilled {} downstream message ", downstreamDataFulfiller(), x))
+                .peek(x -> debugConsumer(false, "fulfill data for downstream"))
                 .peek(x -> countAndLog(redisCachedCount, "Cached {} data into redis", CommonDataPipeline.redisTestSinker(), x))
                 .peek(x -> countAndLog(producedCount, "Published {} data", kfkTestOutputSinker(), x))
-                .forEach(x -> {});
+                .forEach(debugConsumer(false, "finish whole process"));
     }
 
     protected void parallelHandleData(List<JSONObject> data) {
@@ -228,7 +234,16 @@ public class KfkConsumer {
         };
     }
 
-    protected Consumer<Map> debugConsumer(String step) { return value -> log.info(step + ":" + JSON.toJSONString(value)); }
+    protected Consumer<Map> debugConsumer(Boolean isPrint, String step) {
+        return value -> {
+            String msg = step + ":" + JSON.toJSONString(value);
+            if (Optional.ofNullable(isPrint).orElse(false)) {
+                log.info(msg);
+            } else {
+                log.debug(msg);
+            }
+        };
+    }
 
     protected Consumer<Map> functionalMapper() { return value -> {}; }
 
@@ -245,13 +260,11 @@ public class KfkConsumer {
     protected Consumer<Map> esDataCleaner() {
         return value -> {
             List<String> aliveKeys = getESAliveKeys();
-            Iterator<Map.Entry> it = value.entrySet().iterator();
-            while(it.hasNext()) {
-                Map.Entry entry = it.next();
-                if (!aliveKeys.contains(entry.getKey())) {
-                    value.remove(entry.getKey());
-                }
-            }
+            List<String> removeKeys = (List<String>) value.keySet()
+                    .stream()
+                    .filter(x -> !aliveKeys.contains(x))
+                    .collect(Collectors.toList());
+            removeKeys.forEach(value::remove);
         };
     }
 

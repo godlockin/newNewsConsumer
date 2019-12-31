@@ -15,7 +15,7 @@ public class DataUtils {
         return StringUtils.isBlank(base) ? "" : base
                 .replaceAll("<[.[^>]]*>", "")
                 .replaceAll("[\\s\\p{Zs}]+", "")
-                .replaceAll("\\s*|\t|\r|\n", "")
+                .replaceAll("\t|\r|\n", "")
                 .replaceAll("\n|\r\n|\\n|\\t", "")
                 .replaceAll("&nbsp", "")
                 .trim();
