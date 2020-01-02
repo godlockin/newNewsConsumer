@@ -39,6 +39,7 @@ public class BusinessConstants {
         public static final String PUBLISHDATE_KEY = "publishDate";
         public static final String SEPARATEDATE_KEY = "separateDate";
         public static final String ENTRYTIME_KEY = "entryTime";
+        public static final String HTML_OSS_URL_KEY = "htmlOssUrl";
 
         public static final String LIKE_KEY = "like";
 
@@ -48,12 +49,14 @@ public class BusinessConstants {
                 ,"content"
                 ,"bundle_key"
                 ,"source"
+                ,"html"
         );
 
         public static final List<String> ES_ALIVE_KEYS = Arrays.asList(
                 "sourceUrl"
                 ,"bundleKey"
                 ,"ossUrl"
+                ,"htmlOssUrl"
                 ,"publishDate"
                 ,"separateDate"
                 ,"sourceName"
@@ -71,6 +74,7 @@ public class BusinessConstants {
                 ,"bundleKey"
                 ,"entryTime"
                 ,"ossUrl"
+                ,"htmlOssUrl"
                 ,"publishDate"
                 ,"sourceName"
                 ,"domain"
@@ -222,6 +226,7 @@ public class BusinessConstants {
     public static class TasksConfig {
         private TasksConfig() {}
 
+        public static final String CORE_JOBS_KEY = "jobs";
         public static final String WIKI_JOB_KEY = "wiki";
         public static final String QUESTION_ANSWER_JOB_KEY = "qa";
         public static final String BLOG_JOB_KEY = "blog";

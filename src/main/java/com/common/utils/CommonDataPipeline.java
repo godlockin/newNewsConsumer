@@ -63,6 +63,8 @@ public class CommonDataPipeline {
                 String bundleKey = (String) value.getOrDefault("bundle_key", GuidService.getMd5(sourceUrl).toLowerCase());
                 tmp.put(DataConfig.BUNDLE_KEY, bundleKey);
 
+                tmp.put(DataConfig.HTML_OSS_URL_KEY, value.get("html"));
+
                 Object publishDate = value.get("pub_date");
                 Long timestamp = System.currentTimeMillis();
 
