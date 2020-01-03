@@ -17,15 +17,3 @@ elasticsearch:
     flush: 5000
     size: 10
   index: newton_blog
-
-remote-analysis:
-  url: http://10.0.1.153:80/analyze
-
-summary:
-  url: http://10.0.3.64:80/text-rank
-
-spring:
-  redis:
-    host: r-uf6msugry3djgblvj7.redis.rds.aliyuncs.com
-    password: HDRM3XTYQujrTKTh
-    port: 6379

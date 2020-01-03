@@ -6,10 +6,17 @@ spring:
     name: newNewsConsumer
   profiles:
     active: ${ACTIVE_KEY}
+  redis:
+    host: newton-redis.tigerobo.com
+    #r-uf6msugry3djgblvj7.redis.rds.aliyuncs.com
+    password: TwcqXrSv6GETOepChOM8frRqtccZSOD7
+    #HDRM3XTYQujrTKTh
+    port: 19000
+    #6379
 
 logging:
   config: classpath:logback-spring.xml
-  path: ./logs/newNewsConsumer/${spring.profiles.active}/
+  path: /usr/local/logs/newNewsConsumer/${spring.profiles.active}/
   pattern:
     dateformat: yyyyMMdd HH:mm:ss:SSS
     level: info
@@ -30,3 +37,10 @@ elasticsearch:
     size: 10
     flush: 5000
     concurrent: 3
+
+remote-analysis:
+  url: http://10.0.1.153:80/analyze
+
+summary:
+  url: http://10.0.3.64:80/text-rank
+

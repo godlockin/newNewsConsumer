@@ -17,9 +17,3 @@ elasticsearch:
     flush: 5000
     size: 10
   index: newton_wiki
-
-spring:
-  redis:
-    host: r-uf6msugry3djgblvj7.redis.rds.aliyuncs.com
-    password: HDRM3XTYQujrTKTh
-    port: 6379
