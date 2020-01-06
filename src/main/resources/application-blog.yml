@@ -2,6 +2,7 @@ server:
   port: 8084
 
 isTest: false
+isRerun: false
 
 kafka:
   input:

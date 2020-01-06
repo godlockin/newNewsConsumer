@@ -10,6 +10,7 @@ public class BusinessConstants {
 
         public static final String ENV_FLG_KEY = "spring.profiles.active";
         public static final String IS_TEST_FLG_KEY = "isTest";
+        public static final String IS_RERUN_FLG_KEY = "isRerun";
         public static final String BASE_CONFIG = "application.yml";
         public static final String CONFIG_TEMPLATE = "application-%s.yml";
 

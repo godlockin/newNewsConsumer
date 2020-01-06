@@ -57,6 +57,7 @@ public class KfkConsumer {
     protected AtomicLong errorCount = new AtomicLong(0);
     protected ConcurrentHashMap<String, Object> statement = new ConcurrentHashMap<>();
     protected Boolean isTest = false;
+    protected Boolean isRerun = false;
 
     protected void init() {
         if (!isTrgtConsume()) {
@@ -68,7 +69,8 @@ public class KfkConsumer {
         APPID = LocalConfig.get(KfkConfig.INPUT_APPID_KEY, String.class, "");
 
         isTest = LocalConfig.get(SysConfig.IS_TEST_FLG_KEY, Boolean.class, false);
-        if (isTest) {
+        isRerun = LocalConfig.get(SysConfig.IS_RERUN_FLG_KEY, Boolean.class, false);
+        if (isTest || isRerun) {
             APPID += "_" + new Random().nextInt(10);
         }
 

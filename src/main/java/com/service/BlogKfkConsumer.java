@@ -43,10 +43,14 @@ public class BlogKfkConsumer extends KfkConsumer {
     protected Consumer<Map> functionalMapper() {
         return value -> {
             int like = 0;
-            String likeStr = Optional.ofNullable((String) value.getOrDefault("like_num", "0")).orElse("0");
 
             try {
-                like = Integer.parseInt(likeStr);
+                Object likeNum = value.getOrDefault("like_num", 0);
+                if (likeNum instanceof Number) {
+                    like = (int) Optional.of(likeNum).orElse(0);
+                } else if (likeNum instanceof String) {
+                    like = Integer.parseInt(String.valueOf(likeNum).trim());
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 log.error("Failure to handle like count [{}], {}", value, e);
