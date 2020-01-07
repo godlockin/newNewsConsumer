@@ -5,7 +5,8 @@ spring:
   application:
     name: newNewsConsumer
   profiles:
-    active: ${ACTIVE_KEY}
+    active: blog
+    #${ACTIVE_KEY}
   redis:
     host: newton-redis.tigerobo.com
     #r-uf6msugry3djgblvj7.redis.rds.aliyuncs.com
@@ -16,7 +17,7 @@ spring:
 
 logging:
   config: classpath:logback-spring.xml
-  path: /usr/local/logs/newNewsConsumer/${spring.profiles.active}/
+  path: ./logs/newNewsConsumer/${spring.profiles.active}/
   pattern:
     dateformat: yyyyMMdd HH:mm:ss:SSS
     level: info
